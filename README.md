@@ -39,7 +39,7 @@ from dysts.datasets import load_dataset
 data = load_dataset(subsets="train", data_format="numpy", standardize=True)
 ```
 
-Additional functionality and examples can be found in [`the demonstrations notebook.`](demos.ipynb). The full API documentation [can be found here](http://www.wgilpin.com/dysts/spbuild/html/index.html).
+Additional functionality and examples can be found in [`the demonstrations notebook.`](demos.ipynb). The full API documentation [can be found here](https://gilpinlab.github.io/dysts/spbuild/html/index.html).
 
 A database of precomputed time series from each system is hosted on [HuggingFace](https://huggingface.co/datasets/williamgilpin/dysts)
 
@@ -98,7 +98,7 @@ To install the optional precomputed trajectories and benchmark results (a large,
 
 + make it easier to add new systems, slowly relax dependency on json data files
 + add multiple init cond support for delay systems
-+ UPDATE WEB DOCUMENTATION: https://www.wgilpin.com/dysts/spbuild/html/index.html
++ UPDATE WEB DOCUMENTATION: https://gilpinlab.github.io/dysts/spbuild/html/index.html
 + align max lyapunov exponent with estimated spectrum better
 + Consider switching from numba to JAX for acceleration of integration.
 

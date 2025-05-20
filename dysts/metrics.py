@@ -24,6 +24,15 @@ if has_module("sklearn"):
 
 
 def relu(x):
+    """
+    Rectified Linear Unit
+
+    Args:
+        x (np.ndarray): The input array
+
+    Returns:
+        np.ndarray: The output array
+    """
     return np.maximum(0, x)
 
 
@@ -42,6 +51,12 @@ def simplex_neighbors(X, metric="euclidean", k=20, tol=1e-6):
         wgts (np.ndarray): weights matrix of shape (n,)
         idx (np.ndarray): index matrix of shape (n, k)
         sigmas (np.ndarray): sigmas matrix of shape (n,)
+
+    Examples:
+        >>> wgts, idx, sigmas = simplex_neighbors(X)
+        >>> wgts, idx, sigmas = simplex_neighbors(X, metric="cosine")
+        >>> wgts, idx, sigmas = simplex_neighbors(X, k=10)
+        >>> wgts, idx, sigmas = simplex_neighbors(X, tol=1e-4)
     """
     if not has_module("sklearn"):
         raise ImportError("Sklearn is required for simplex neighbors")
@@ -67,6 +82,13 @@ def find_sigma(dists, tol=1e-6):
     Returns:
         float: The sigma
         np.ndarray: The transformed distances
+
+    Examples:
+        >>> sigma, dists_transformed = find_sigma(dists)
+        >>> sigma, dists_transformed = find_sigma(dists, tol=1e-4)
+
+    Raises:
+        ValueError: If the distance matrix is not a 2D array
     """
     k = dists.shape[0]
     rho = np.min(dists)
@@ -87,6 +109,19 @@ def find_sigma(dists, tol=1e-6):
 def are_broadcastable(shape1: tuple[int, ...], shape2: tuple[int, ...]) -> bool:
     """
     Check if two numpy arrays are broadcastable.
+
+    Args:
+        shape1 (tuple[int, ...]): The shape of the first array
+        shape2 (tuple[int, ...]): The shape of the second array
+
+    Returns:
+        bool: True if the arrays are broadcastable, False otherwise
+
+    Examples:
+        >>> are_broadcastable((1, 2, 3), (4, 5, 6))
+        False
+        >>> are_broadcastable((1, 2, 3), (3,))
+        True
     """
     # reverse the shapes to align dimensions from the end
     shape1, shape2 = shape1[::-1], shape2[::-1]
@@ -101,6 +136,17 @@ def calculate_season_error(y_past, m, time_dim=-1):
     """
     Calculate the mean absolute error between the forward and backward slices of the
     past data.
+
+    Args:
+        y_past (np.ndarray): The past data
+        m (int): The season length
+        time_dim (int): The dimension of the time series
+
+    Returns:
+        float: The mean absolute error
+
+    Examples:
+        >>> calculate_season_error(y_past, m)
     """
     assert 0 < m < y_past.shape[time_dim], (
         "Season length must be less than the length of the training data"
@@ -329,9 +375,6 @@ def mase(y, yhat, y_train=None, m=1, time_dim=-1, eps=1e-10):
     """
     The mean absolute scaled error.
 
-    Adapted from tensorflow-probability and
-    https://en.wikipedia.org/wiki/Mean_absolute_scaled_error
-
     Args:
         y (ndarray): The true values.
         yhat (ndarray): The predicted values.
@@ -355,9 +398,6 @@ def mase(y, yhat, y_train=None, m=1, time_dim=-1, eps=1e-10):
 
 def msis(y, yhat_lower, yhat_upper, y_obs, m, time_dim=-1, a=0.05, eps=1e-10):
     """The mean scaled interval score.
-
-    Adapted from tensorflow-probability and
-    https://www.uber.com/blog/m4-forecasting-competition/
 
     Args:
       y (np.ndarray): An array containing the true values.
@@ -388,6 +428,13 @@ def spearman(y_true, y_pred):
     """
     Spearman Correlation. Returns dimensionwise mean for multivariate time series of
     shape (T, D)
+
+    Args:
+        y_true (np.ndarray): The true values
+        y_pred (np.ndarray): The predicted values
+
+    Returns:
+        float: The Spearman Correlation
     """
     y_true, y_pred = np.array(y_true).squeeze(), np.array(y_pred).squeeze()
     if y_true.ndim != y_pred.ndim:
@@ -407,6 +454,13 @@ def pearson(y_true, y_pred):
     """
     Pearson Correlation. Returns dimensionwise mean for multivariate time series of
     shape (T, D)
+
+    Args:
+        y_true (np.ndarray): The true values
+        y_pred (np.ndarray): The predicted values
+
+    Returns:
+        float: The Pearson Correlation
     """
     y_true, y_pred = np.array(y_true).squeeze(), np.array(y_pred).squeeze()
     if y_true.ndim != y_pred.ndim:
@@ -426,6 +480,13 @@ def kendall(y_true, y_pred):
     """
     Kendall-Tau Correlation. Returns dimensionwise mean for multivariate time series of
     shape (T, D)
+
+    Args:
+        y_true (np.ndarray): The true values
+        y_pred (np.ndarray): The predicted values
+
+    Returns:
+        float: The Kendall-Tau Correlation
     """
     y_true, y_pred = np.array(y_true).squeeze(), np.array(y_pred).squeeze()
     if y_true.ndim != y_pred.ndim:
@@ -446,6 +507,13 @@ def mutual_information(y_true, y_pred):
     Mutual Information. Returns dimensionwise mean for multivariate time series of
     shape (T, D). Computes the mutual information separately for each dimension and
     returns the mean.
+
+    Args:
+        y_true (np.ndarray): The true values
+        y_pred (np.ndarray): The predicted values
+
+    Returns:
+        float: The Mutual Information
     """
     if not has_module("sklearn"):
         raise ImportError("Sklearn is required for mutual information")
@@ -630,7 +698,17 @@ def estimate_kl_divergence(
 
 
 def hellinger_distance(p, q, axis=0):
-    """Compute the Hellinger distance between two distributions."""
+    """
+    Compute the Hellinger distance between two distributions.
+
+    Args:
+        p (np.ndarray): The first distribution
+        q (np.ndarray): The second distribution
+        axis (int): The axis to sum over
+
+    Returns:
+        float: The Hellinger distance
+    """
     assert np.allclose(1.0, [p.sum(), q.sum()]), "p and q must be normalized"
     return np.sqrt(1 - np.sum(np.sqrt(p * q), axis=axis))
 
@@ -679,6 +757,7 @@ def compute_metrics(
 ) -> dict[str, float]:
     """
     Compute multiple time series metrics
+    
     Args:
         y_true (np.ndarray): The true values of shape (..., T, ...)
         y_pred (np.ndarray): The predicted values of shape (..., T, ...)
@@ -690,6 +769,16 @@ def compute_metrics(
 
     Returns:
         dict: A dictionary containing the computed metrics
+
+    Raises:
+        ValueError: If the batch dimension is not the same for y_true and y_pred
+        ValueError: If the shapes of y_true and y_pred are not broadcastable
+
+    Examples:
+        >>> compute_metrics(y_true, y_pred)
+        >>> compute_metrics(y_true, y_pred, batch_axis=1)
+        >>> compute_metrics(y_true, y_pred, include=["mse", "mae"])
+        >>> compute_metrics(y_true, y_pred, include=["mse", "mae"], batch_axis=1)
     """
     # create a single batch dimension as dimension 0
     if batch_axis is None:

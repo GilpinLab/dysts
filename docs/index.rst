@@ -3,11 +3,11 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-##################
+###################
 dysts API Reference
-##################
+###################
 
-The API reference for the dysts .. _repository: https://github.com/williamgilpin/dysts
+The API reference for the dysts repository: https://github.com/williamgilpin/dysts
 
 .. toctree::
    :maxdepth: 2
@@ -19,26 +19,52 @@ Base Classes
 .. automodule:: dysts.base
     :members:
 
-Datasets
-===================
+.. Datasets
+.. ===================
 
-.. automodule:: dysts.datasets
-    :members:
-    :exclude-members: load_file, featurize_timeseries
+.. .. automodule:: dysts.datasets
+..     :members:
+..     :exclude-members: load_file, featurize_timeseries
 
 Utilities
 ===================
 
-.. automodule:: dysts.utils
+.. automodule:: dysts.utils.utils
     :members:
     :exclude-members: group_consecutives, integrate_weiner, parabolic, parabolic_polyfit, signif, resample_timepoints
+
+.. automodule:: dysts.utils.native_utils
+    :members:
+    :exclude-members: group_consecutives, integrate_weiner, parabolic, parabolic_polyfit, signif, resample_timepoints
+
+.. automodule:: dysts.utils.integration_utils
+    :members:
 
 Analysis
 ===================
 
 .. automodule:: dysts.analysis
     :members:
+    :exclude-members: max_lyapunov_exponent_rosenstein, dfa
 
+Systems
+===================
+
+.. automodule:: dysts.systems
+    :members:
+
+Sampling
+===================
+
+.. automodule:: dysts.sampling
+    :members:
+
+Metrics
+===================
+
+.. automodule:: dysts.metrics
+    :members:
+   
 
 Indices and tables
 ==================
