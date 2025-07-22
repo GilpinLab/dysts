@@ -5,9 +5,14 @@ from datetime import datetime
 from functools import wraps
 from pathlib import Path
 from typing import Callable, List, Literal, Union
+import warnings
 
 import numpy as np
-from gluonts.dataset.arrow import ArrowWriter
+try:
+    from gluonts.dataset.arrow import ArrowWriter
+except ImportError:
+    warnings.warn("gluonts not installed, function convert_to_arrow will not work")
+
 
 
 def safe_standardize(
