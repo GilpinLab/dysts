@@ -637,7 +637,11 @@ class GaussianMixture:
 
 
 def estimate_kl_divergence(
-    true_orbit, generated_orbit, n_samples=1000, sigma_scale: float | None = 1.0
+    true_orbit,
+    generated_orbit,
+    n_samples=1000,
+    sigma_scale: float | None = 1.0,
+    eps: float = 1e-10,
 ) -> float:
     """
     Estimate KL divergence between observed and generated orbits using Gaussian Mixture
@@ -651,6 +655,7 @@ def estimate_kl_divergence(
         n_samples (int): Number of Monte Carlo samples.
         sigma_scale (float): Variance parameter for the GMMs. If None, the variance is
             estimated locally for each point.
+        eps (float): Small value to prevent division by zero. Default is 1e-10.
 
     Returns:
         float: Estimated KL divergence
@@ -691,7 +696,15 @@ def estimate_kl_divergence(
 
     # Sample directly n_samples points from p_hat
     samples = p_hat.sample(n_samples=n_samples)
-    log_ratios = np.log(p_hat(samples) / q_hat(samples))
+
+    # Safe division to prevent division by zero or very small values
+    p_vals = p_hat(samples)
+    q_vals = q_hat(samples)
+
+    # Add epsilon to q_vals to prevent division by zero
+    q_vals = np.maximum(q_vals, eps)
+
+    log_ratios = np.log(p_vals / q_vals)
     kl_estimate = np.mean(log_ratios)
 
     return kl_estimate
@@ -714,7 +727,10 @@ def hellinger_distance(p, q, axis=0):
 
 
 def average_hellinger_distance(
-    ts_true: np.ndarray, ts_gen: np.ndarray, num_freq_bins: int = 100
+    ts_true: np.ndarray,
+    ts_gen: np.ndarray,
+    num_freq_bins: int = 100,
+    eps: float = 1e-10,
 ) -> float:
     """
     Compute the average Hellinger distance between power spectra of two multivariate
@@ -724,6 +740,7 @@ def average_hellinger_distance(
         ts_true (np.ndarray): True time series, shape (n_samples, n_dimensions).
         ts_gen (np.ndarray): Generated time series, shape (n_samples, n_dimensions).
         num_freq_bins (int): Number of frequency bins to use in FFT for power spectrum.
+        eps (float): Small value to prevent division by zero. Default is 1e-10.
 
     Returns:
         avg_dh: Average Hellinger distance across all dimensions.
@@ -738,8 +755,23 @@ def average_hellinger_distance(
     for i in range(d):
         f_true = np.abs(np.fft.fft(ts_true[:, i])) ** 2
         f_gen = np.abs(np.fft.fft(ts_gen[:, i])) ** 2
-        f_true[:num_freq_bins] /= np.sum(f_true[:num_freq_bins])
-        f_gen[:num_freq_bins] /= np.sum(f_gen[:num_freq_bins])
+
+        # Safe division with epsilon to prevent division by zero
+        sum_true = np.sum(f_true[:num_freq_bins])
+        sum_gen = np.sum(f_gen[:num_freq_bins])
+
+        if sum_true > eps:
+            f_true[:num_freq_bins] /= sum_true
+        else:
+            f_true[:num_freq_bins] = (
+                np.ones_like(f_true[:num_freq_bins]) / num_freq_bins
+            )
+
+        if sum_gen > eps:
+            f_gen[:num_freq_bins] /= sum_gen
+        else:
+            f_gen[:num_freq_bins] = np.ones_like(f_gen[:num_freq_bins]) / num_freq_bins
+
         all_dh.append(hellinger_distance(f_true[:num_freq_bins], f_gen[:num_freq_bins]))
     all_dh = np.array(all_dh)
 
@@ -757,7 +789,7 @@ def compute_metrics(
 ) -> dict[str, float]:
     """
     Compute multiple time series metrics
-    
+
     Args:
         y_true (np.ndarray): The true values of shape (..., T, ...)
         y_pred (np.ndarray): The predicted values of shape (..., T, ...)

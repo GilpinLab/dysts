@@ -5,6 +5,7 @@ Functions that act on DynSys or DynMap objects
 """
 
 import warnings
+from typing import Callable, Sequence
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -28,7 +29,7 @@ else:
     )
 
 
-def logarithmic_n(min_n, max_n, factor):
+def logarithmic_n(min_n: float, max_n: float, factor: float) -> np.ndarray:
     """
     Return a list of values by successively multiplying a minimum value min_n by
     a factor > 1 until a maximum value max_n is reached. Non-integer results are rounded
@@ -54,14 +55,17 @@ def logarithmic_n(min_n, max_n, factor):
     return ns[ns <= max_n]
 
 
-def rowwise_euclidean(x, y):
+def rowwise_euclidean(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     """Computes the euclidean distance across rows"""
     return np.sqrt(np.sum((x - y) ** 2, axis=1))
 
 
 def sample_initial_conditions(
-    model, points_to_sample, traj_length=1000, pts_per_period=30
-):
+    model: Callable,
+    points_to_sample: int,
+    traj_length: int = 1000,
+    pts_per_period: int = 30,
+) -> np.ndarray:
     """
     Generate a random sample of initial conditions from a dynamical system
 
@@ -156,7 +160,7 @@ def compute_timestep(
     return np.array(all_dt), np.array(all_periods)
 
 
-def estimate_powerlaw(data0):
+def estimate_powerlaw(data0: np.ndarray) -> float:
     """
     Given a 1D array of continuous-valued data, estimate the power law exponent using the
     maximum likelihood estimator proposed by Clauset, Shalizi, Newman (2009).
@@ -174,7 +178,12 @@ def estimate_powerlaw(data0):
     return ahat
 
 
-def gp_dim(data, y_data=None, rvals=None, nmax=100):
+def gp_dim(
+    data: np.ndarray,
+    y_data: np.ndarray | None = None,
+    rvals: np.ndarray | None = None,
+    nmax: int = 100,
+) -> float:
     """
     Estimate the Grassberger-Procaccia dimension for a numpy array using the
     empirical correlation integral.
@@ -215,9 +224,10 @@ def gp_dim(data, y_data=None, rvals=None, nmax=100):
 
     return estimate_powerlaw(rvals)
 
-def twonn_dim(X, approximate=False):
+
+def twonn_dim(X: np.ndarray, approximate: bool = False) -> float:
     """
-    Estimate the global intrinsic dimension of a point cloud using the TwoNN 
+    Estimate the global intrinsic dimension of a point cloud using the TwoNN
     estimator [1]. If approximate is True, the calculation is performed using an
     approximate nearest neighbors algorithm.
 
@@ -229,7 +239,7 @@ def twonn_dim(X, approximate=False):
 
     References:
         [1] Facco, E., d'Errico, M., Rodriguez, A., & Laio, A. (2017).
-            Estimating the intrinsic dimension of datasets by a minimal neighborhood 
+            Estimating the intrinsic dimension of datasets by a minimal neighborhood
             information.Scientific reports, 7(1), 12140.
     """
     X = np.asarray(X)
@@ -237,11 +247,13 @@ def twonn_dim(X, approximate=False):
 
     if approximate:
         try:
-            import hnswlib
+            import hnswlib  # type: ignore
         except ImportError:
-            raise ImportError("hnswlib not installed. Please install hnswlib to use approximate calculation.")
-        
-        index = hnswlib.Index(space='l2', dim=X.shape[1])
+            raise ImportError(
+                "hnswlib not installed. Please install hnswlib to use approximate calculation."
+            )
+
+        index = hnswlib.Index(space="l2", dim=X.shape[1])
         index.init_index(max_elements=X.shape[0], ef_construction=100, M=16)
         index.add_items(X)
         # index.set_ef(100)
@@ -252,7 +264,9 @@ def twonn_dim(X, approximate=False):
         try:
             from sklearn.neighbors import NearestNeighbors
         except ImportError:
-            raise ImportError("scikit-learn not installed. Please install scikit-learn to use exact calculation.")
+            raise ImportError(
+                "scikit-learn not installed. Please install scikit-learn to use exact calculation."
+            )
         nbrs = NearestNeighbors(n_neighbors=3).fit(X)
         distances, _ = nbrs.kneighbors(X)
 
@@ -269,7 +283,14 @@ def twonn_dim(X, approximate=False):
     d = n / np.sum(np.log(mu))
     return d
 
-def corr_gpdim(traj1, traj2, register=False, standardize=False, **kwargs):
+
+def corr_gpdim(
+    traj1: np.ndarray,
+    traj2: np.ndarray,
+    register: bool = False,
+    standardize: bool = False,
+    **kwargs,
+) -> tuple[float, float, float]:
     """
     Given two multivariate time series, estimate their similarity using the cross
     Grassberger-Procaccia dimension
@@ -290,6 +311,8 @@ def corr_gpdim(traj1, traj2, register=False, standardize=False, **kwargs):
 
     Returns:
         float: The cross-correlation between the two time series
+        float: The Grassberger-Procaccia dimension of the first time series
+        float: The Grassberger-Procaccia dimension of the second time series
     """
     if register:
         if not has_module("sklearn"):
@@ -302,12 +325,20 @@ def corr_gpdim(traj1, traj2, register=False, standardize=False, **kwargs):
         traj1 = (traj1 - np.mean(traj1, axis=0)) / np.std(traj1, axis=0)
         traj2 = (traj2 - np.mean(traj2, axis=0)) / np.std(traj2, axis=0)
 
-    return gp_dim(traj1, traj2, **kwargs) / np.sqrt(
-        gp_dim(traj1, **kwargs) * gp_dim(traj2, **kwargs)
-    )
+    gpdim1 = gp_dim(traj1, **kwargs)
+    gpdim2 = gp_dim(traj2, **kwargs)
+
+    res = gp_dim(traj1, traj2, **kwargs) / np.sqrt(gpdim1 * gpdim2)
+    return res, gpdim1, gpdim2
 
 
-def gpdistance(traj1, traj2, standardize=True, register=False, **kwargs):
+def gpdistance(
+    traj1: np.ndarray,
+    traj2: np.ndarray,
+    standardize: bool = True,
+    register: bool = False,
+    **kwargs,
+) -> np.ndarray:
     """
     Given two multivariate time series, estimate their similarity using the cross
     Grassberger-Procaccia distance
@@ -338,8 +369,13 @@ def gpdistance(traj1, traj2, standardize=True, register=False, **kwargs):
 
 
 def find_lyapunov_exponents(
-    model, traj_length, pts_per_period=500, tol=1e-8, min_tpts=10, **kwargs
-):
+    model: Callable,
+    traj_length: int,
+    pts_per_period: int = 500,
+    tol: float = 1e-8,
+    min_tpts: int = 10,
+    **kwargs,
+) -> np.ndarray:
     """
     Given a dynamical system, compute its spectrum of Lyapunov exponents.
     Args:
@@ -420,7 +456,9 @@ def find_lyapunov_exponents(
     return np.sort(final_lyap)[::-1]
 
 
-def calculate_lyapunov_exponent(traj1, traj2, dt=1.0):
+def calculate_lyapunov_exponent(
+    traj1: np.ndarray, traj2: np.ndarray, dt: float = 1.0
+) -> float:
     """
     Calculate the lyapunov exponent of two multidimensional trajectories using
     simple linear regression based on the log-transformed separation of the
@@ -450,7 +488,7 @@ def max_lyapunov_exponent(
     n_samples: int = 1000,
     traj_length: int = 5000,
     **kwargs,
-):
+) -> float | None:
     """
     Calculate the lyapunov spectrum of the system using a naive method based on the
     log-transformed separation of the trajectories over time.
@@ -554,10 +592,10 @@ def max_lyapunov_exponent(
             + "the invariant properties."
         )
 
-    return np.mean(all_lyap)
+    return float(np.mean(all_lyap))
 
 
-def kaplan_yorke_dimension(spectrum0):
+def kaplan_yorke_dimension(spectrum0: np.ndarray) -> float:
     """Calculate the Kaplan-Yorke dimension, given a list of
     Lyapunov exponents"""
     spectrum = np.sort(spectrum0)[::-1]
@@ -575,18 +613,17 @@ def kaplan_yorke_dimension(spectrum0):
 
 
 def max_lyapunov_exponent_rosenstein(
-    data,
-    lag=None,
-    min_tsep=None,
-    tau=1,
-    trajectory_len=20,
-    fit="RANSAC",
-    fit_offset=0,
-):
+    data: Sequence[float] | np.ndarray,
+    lag: int | None = None,
+    min_tsep: int | None = None,
+    tau: float = 1,
+    trajectory_len: int = 20,
+    fit: str = "RANSAC",
+    fit_offset: int = 0,
+) -> float:
     """
     Adapted from the nolds Python library:
     https://github.com/CSchoel/nolds/blob/master/nolds/measures.py
-
 
     Estimates the largest Lyapunov exponent using the algorithm of Rosenstein
     et al. [lr_1]_.
@@ -694,7 +731,7 @@ def max_lyapunov_exponent_rosenstein(
 
     orbit = data
     m = len(orbit)
-    dists = np.array([rowwise_euclidean(orbit, orbit[i]) for i in range(m)])
+    dists = np.array([rowwise_euclidean(orbit, orbit[i]) for i in range(m)])  # type: ignore
 
     for i in range(m):
         dists[i, max(0, i - min_tsep) : i + min_tsep + 1] = float("inf")
@@ -737,11 +774,11 @@ def max_lyapunov_exponent_rosenstein(
 
 
 def dfa(
-    data,
-    nvals=None,
-    overlap=True,
-    order=1,
-):
+    data: np.ndarray,
+    nvals: Sequence[int] | np.ndarray | None = None,
+    overlap: bool = True,
+    order: int = 1,
+) -> float:
     """
     Adapted from the nolds Python library:
     https://github.com/CSchoel/nolds/blob/master/nolds/measures.py
@@ -1040,7 +1077,6 @@ def zero_one_test(phi: np.ndarray, c: float | None = None) -> float:
     return K
 
 
-# Test using the Euclidean norm as observable.
 def run_zero_one_sweep(
     timeseries: np.ndarray,
     c_min: float = np.pi / 5,
