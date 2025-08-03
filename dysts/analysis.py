@@ -773,6 +773,80 @@ def max_lyapunov_exponent_rosenstein(
     return le
 
 
+def max_lyapunov_exponent_rosenstein_multivariate(
+    data: np.ndarray,  # Shape: (n_timesteps, n_dimensions)
+    lag: int | None = None,
+    min_tsep: int | None = None,
+    tau: float = 1,
+    trajectory_len: int = 64,
+    fit: str = "RANSAC",
+    fit_offset: int = 0,
+) -> float:
+    """
+    Multivariate version of Rosenstein's algorithm.
+    """
+    data = np.asarray(data, dtype="float32")
+    n, d = data.shape  # n = timesteps, d = dimensions
+    max_tsep_factor = 0.25
+
+    # For multivariate data, we might need to estimate min_tsep differently
+    # One approach: use the first dimension or average across dimensions
+    if lag is None or min_tsep is None:
+        # Use first dimension for frequency estimation
+        f = np.fft.rfft(data[:, 0], n * 2 - 1)
+
+    if min_tsep is None:
+        mf = np.fft.rfftfreq(n * 2 - 1) * np.abs(f)
+        mf = np.mean(mf[1:]) / np.sum(np.abs(f[1:]))
+        min_tsep = int(np.ceil(1.0 / mf))
+        if min_tsep > max_tsep_factor * n:
+            min_tsep = int(max_tsep_factor * n)
+
+    orbit = data  # Shape: (n_timesteps, n_dimensions)
+    m = len(orbit)
+    dists = cdist(orbit, orbit, metric="euclidean")
+
+    # temporal separation constraint: mask out diagonal band
+    mask = np.abs(np.arange(m)[:, None] - np.arange(m)[None, :]) < min_tsep
+    dists[mask] = float("inf")
+
+    ntraj = m - trajectory_len + 1
+    min_traj = min_tsep * 2 + 2
+
+    if ntraj <= 0:
+        raise ValueError(
+            f"Not enough data points. Need {-ntraj + 1} additional data points to follow a complete trajectory."
+        )
+    if ntraj < min_traj:
+        raise ValueError(
+            f"Not enough data points. At least {min_traj} trajectories are required to find a valid neighbor for each orbit vector with min_tsep={min_tsep} but only {ntraj} could be created."
+        )
+
+    nb_idx = np.argmin(dists[:ntraj, :ntraj], axis=1)
+
+    div_traj = np.zeros(trajectory_len, dtype=float)
+    for k in range(trajectory_len):
+        indices = (np.arange(ntraj) + k, nb_idx + k)
+        div_traj_k = dists[indices]
+        nonzero = np.where(div_traj_k != 0)
+        div_traj[k] = (
+            -np.inf if len(nonzero[0]) == 0 else np.mean(np.log(div_traj_k[nonzero]))
+        )
+
+    ks = np.arange(trajectory_len)
+    finite = np.where(np.isfinite(div_traj))
+    ks = ks[finite]
+    div_traj = div_traj[finite]
+
+    if len(ks) < 1:
+        return -np.inf
+
+    poly = np.polyfit(ks[fit_offset:], div_traj[fit_offset:], 1)
+
+    le = poly[0] / tau
+    return le
+
+
 def dfa(
     data: np.ndarray,
     nvals: Sequence[int] | np.ndarray | None = None,

@@ -27,9 +27,7 @@ dependencies = [
 benchmarks = ["darts", "torch", "pandas"]
 numba = ["numba"]
 extra = ["sdeint", "wandb", "statsmodels", "hnswlib"]
+
 # Package data
 [tool.setuptools]
-packages = ["dysts", "dysts.utils"]
-
-[tool.setuptools.package-data]
-"dysts" = ["data/*"]
+packages = ["dysts"]
