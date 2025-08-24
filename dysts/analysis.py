@@ -115,8 +115,6 @@ def compute_timestep(
         period (float, optional): The dominant timescale in the signal
 
     """
-
-    print(f"Starting timestep: {system.dt}\nStarting period: {system.period}\n")
     cutoff = int(transient_fraction * total_length)
 
     all_dt = list()
@@ -152,11 +150,8 @@ def compute_timestep(
         period0 = char_time0 * dtval0  # this needs to be a scalar float
 
         system.dt, system.period = dt0, period0  # type: ignore
-        print(system.dt, system.period)
         all_dt.append(system.dt)
         all_periods.append(system.period)
-    print("all dt: ", all_dt)
-    print("all periods: ", all_periods)
     return np.array(all_dt), np.array(all_periods)
 
 

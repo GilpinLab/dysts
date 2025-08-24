@@ -9,7 +9,6 @@ from scipy.integrate import solve_ivp
 from scipy.signal import resample
 
 from .native_utils import has_module
-from .utils import freq_from_autocorr
 
 if has_module("sdeint"):
     from sdeint import itoint
@@ -21,6 +20,57 @@ def cast_to_numpy(x, singleton_scalar=False):
     else:
         scalar_cast = x
     return np.array(x) if not np.isscalar(x) else scalar_cast
+
+
+def parabolic(f, x):
+    """
+    Quadratic interpolation in order to estimate the location of a maximum
+    https://gist.github.com/endolith/255291
+
+    Args:
+        f (ndarray): a vector a samples
+        x (int): an index on the vector
+
+    Returns:
+        (vx, vy): the vertex coordinates of  a parabola passing through x
+            and its neighbors
+    """
+    xv = 1 / 2.0 * (f[x - 1] - f[x + 1]) / (f[x - 1] - 2 * f[x] + f[x + 1]) + x
+    yv = f[x] - 1 / 4.0 * (f[x - 1] - f[x + 1]) * (xv - x)
+    return (xv, yv)
+
+
+def freq_from_autocorr(sig, fs=1):
+    """
+    Estimate frequency using autocorrelation
+
+    Args:
+        sig (ndarray): A univariate signal
+        fs (int): The sampling frequency
+
+    Returns:
+        out (float): The dominant frequency
+
+    References:
+        Modified from the following
+        https://gist.github.com/endolith/255291
+    """
+    # Calculate autocorrelation and throw away the negative lags
+    corr = np.correlate(sig, sig, mode="full")
+    corr = corr[len(corr) // 2 :]
+
+    # Find the first low point
+    d = np.diff(corr)
+    start = np.nonzero(d > 0)[0][0]
+
+    # Find the next peak after the low point (other than 0 lag).  This bit is
+    # not reliable for long signals, due to the desired peak occurring between
+    # samples, and other peaks appearing higher.
+    # Should use a weighting function to de-emphasize the peaks at longer lags.
+    peak = np.argmax(corr[start:]) + start
+    px, py = parabolic(corr, peak)
+    out = fs / px
+    return out
 
 
 def resample_timepoints(model, ic, tpts, cutoff=10000, pts_per_period=100):
