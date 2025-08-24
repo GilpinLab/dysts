@@ -20,7 +20,6 @@ from dysts.utils import (
 )
 
 WORKING_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-print(WORKING_DIR)
 sys.path.insert(1, os.path.join(WORKING_DIR, "dysts"))
 
 

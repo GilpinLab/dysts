@@ -19,7 +19,6 @@ from dysts.systems import get_attractor_list
 
 WORKING_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(WORKING_DIR, "tests", "test_data")
-print(WORKING_DIR)
 
 sys.path.insert(1, os.path.join(WORKING_DIR, "dysts"))
 
