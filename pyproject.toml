@@ -31,5 +31,7 @@ numba = ["numba"]
 extra = ["sdeint", "hnswlib"]
 
 # Package data
-[tool.setuptools]
-packages = ["dysts"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["dysts*"]
+exclude = ["tests*", "scripts*", "docs*", "notebooks*"]
