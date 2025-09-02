@@ -151,9 +151,10 @@ class AttractorValidator:
 
     def multiprocessed_filter_ensemble(
         self, ensemble: Dict[str, np.ndarray], first_sample_idx: int = 0
-    ) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray]]:
+    ) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray], Dict[str, list[int]]]:
         """
-        Multiprocessed version of self.filter_ensemble
+        Multiprocessed version of self.filter_ensemble.
+        Also returns a dict mapping dyst_name to list of successful sample indices.
         """
         with Pool(**self.multiprocess_kwargs) as pool:
             results = pool.starmap(
@@ -170,7 +171,9 @@ class AttractorValidator:
                 self.failed_samples[dyst_name].extend(
                     [index for index, _ in failed_check_lst]
                 )
-        for dyst_name, valid_samples_lst in zip(list(ensemble.keys()), valid_samples):
+
+        successful_samples_dict = dict(zip(list(ensemble.keys()), valid_samples))
+        for dyst_name, valid_samples_lst in successful_samples_dict.items():
             if len(valid_samples_lst) > 0:
                 self.valid_samples[dyst_name].extend(valid_samples_lst)
                 self.valid_dyst_counts[dyst_name] += len(valid_samples_lst)
@@ -182,7 +185,17 @@ class AttractorValidator:
         failed_ensemble = {
             k: v for k, v in zip(list(ensemble.keys()), failed_trajs) if v.shape[0] > 0
         }
-        return valid_ensemble, failed_ensemble
+
+        # shift the successful samples by the first sample index, for the current call of the validator
+        successful_samples_relative = {
+            k: [i - first_sample_idx for i in v]
+            for k, v in zip(ensemble.keys(), valid_samples)
+        }
+        return (
+            valid_ensemble,
+            failed_ensemble,
+            successful_samples_relative,
+        )
 
 
 def check_boundedness(

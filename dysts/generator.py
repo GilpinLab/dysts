@@ -7,7 +7,7 @@ from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field
 from itertools import starmap
 from multiprocessing import Manager, Pool
-from typing import Callable
+from typing import Callable, Literal
 
 import numpy as np
 import wandb
@@ -161,118 +161,36 @@ class DynSysSampler(BaseDynSysSampler):
         save_dir: str | None,
         split: str,
         split_failures: str = "failed_attractors",
-    ) -> tuple[str | None, str | None]:
+        split_driver: str = "driver",
+        save_driver_coords_option: Literal["combined", "separate"] | None = None,
+    ) -> tuple[str | None, str | None, str | None]:
         if save_dir is not None:
             save_dyst_dir = os.path.join(save_dir, split)
             os.makedirs(save_dyst_dir, exist_ok=True)
             logger.info(f"valid attractors will be saved to {save_dyst_dir}")
+
+            driver_dyst_dir = None
+            if save_driver_coords_option == "separate":
+                driver_dyst_dir = os.path.join(save_dir, split_driver, split)
+                os.makedirs(driver_dyst_dir, exist_ok=True)
+                logger.info(f"driver coordinates will be saved to {driver_dyst_dir}")
+            elif save_driver_coords_option == "combined":
+                logger.info(f"driver coordinates will be saved to {save_dyst_dir}")
+            else:
+                logger.warning(
+                    "save_driver_coords_option is None, will not save driver coordinates"
+                )
+
             if self.save_failed_trajs:
-                failed_dyst_dir = os.path.join(save_dir, split_failures)
+                failed_dyst_dir = os.path.join(save_dir, split_failures, split)
                 os.makedirs(failed_dyst_dir, exist_ok=True)
                 logger.info(f"failed attractors will be saved to {failed_dyst_dir}")
             else:
                 failed_dyst_dir = None
         else:
             logger.warning("save_dir is None, will not save trajectories.")
-            save_dyst_dir = failed_dyst_dir = None
-        return save_dyst_dir, failed_dyst_dir
-
-    @timeit(logger=logger)
-    def sample_ensembles(
-        self,
-        systems: list[str] | list[BaseDyn],
-        save_dir: str | None = None,
-        split: str = "train",
-        split_failures: str = "failed_attractors",
-        samples_process_interval: int = 1,
-        save_params_dir: str | None = None,
-        save_traj_stats_dir: str | None = None,
-        standardize: bool = False,
-        use_multiprocessing: bool = True,
-        silent_errors: bool = False,
-        reset_attractor_validator: bool = False,
-        **kwargs,
-    ) -> None:
-        """
-        Sample perturbed ensembles for a given set of dynamical systems. Optionally,
-        save the ensembles to disk and save the parameters to a json file.
-        """
-        sys_names = [sys if isinstance(sys, str) else sys.name for sys in systems]
-        assert len(set(sys_names)) == len(sys_names), (
-            "Cannot have duplicate system names"
-        )
-        if save_dir is not None:
-            logger.info(
-                f"Making {split} split with {len(systems)} dynamical systems"
-                f" (showing first {min(5, len(sys_names))}): \n {sys_names[:5]}"
-            )
-        is_all_basedyn = all(isinstance(sys, BaseDyn) for sys in systems)
-
-        if self.attractor_validator is not None and reset_attractor_validator:
-            self.attractor_validator.reset()
-            self.failed_integrations.clear()
-
-        save_dyst_dir, failed_dyst_dir = self._prepare_save_directories(
-            save_dir, split, split_failures=split_failures
-        )
-        # NOTE: we define number of total samples as (num_param_perturbations * num_ics) + 1 to account for the default ensemble (with one initial condition)
-        num_total_samples = self.num_param_perturbations * self.num_ics + 1
-
-        callbacks = [
-            self._reset_events_callback,
-            self._validate_and_save_ensemble_callback(
-                num_total_samples,
-                samples_process_interval,
-                save_dyst_dir,
-                failed_dyst_dir,
-                save_params_dir,
-                save_traj_stats_dir,
-            ),
-            self.save_failed_integrations_callback,
-        ]
-
-        num_periods = self.rng.choice(self.num_periods)
-        logger.info(f"Generating default ensemble with {num_periods} periods")
-
-        # treat the default params as the zeroth sample, enforce just one (default) initial condition
-        default_ensemble = make_trajectory_ensemble(
-            self.num_points,
-            subset=systems,
-            pts_per_period=self.num_points // num_periods,
-            event_fns=self.events,
-            use_multiprocessing=use_multiprocessing,
-            silent_errors=silent_errors,
-            multiprocess_kwargs=self.multiprocess_kwargs,
-            **kwargs,
-        )
-        failed_integrations = [
-            key
-            for key, value in default_ensemble.items()
-            if value is None or np.isnan(value).any()
-        ]
-        default_ensemble = {
-            key: value
-            for key, value in default_ensemble.items()
-            if key not in failed_integrations
-        }
-        for callback in callbacks:
-            callback(
-                sample_idx=0,
-                ensemble=default_ensemble,
-                excluded_keys=failed_integrations,
-                perturbed_systems=systems if is_all_basedyn else None,
-            )
-
-        logger.info("Generating perturbed ensembles...")
-
-        self._generate_ensembles(
-            systems,
-            postprocessing_callbacks=callbacks,
-            standardize=standardize,
-            use_multiprocessing=use_multiprocessing,
-            silent_errors=silent_errors,
-            **kwargs,
-        )
+            save_dyst_dir = driver_dyst_dir = failed_dyst_dir = None
+        return save_dyst_dir, driver_dyst_dir, failed_dyst_dir
 
     def _transform_params_and_ics(
         self,
@@ -350,6 +268,120 @@ class DynSysSampler(BaseDynSysSampler):
             transformed_systems = list(map_fn(self._transform_params_and_ics, args))
 
         return transformed_systems
+
+    @timeit(logger=logger)
+    def sample_ensembles(
+        self,
+        systems: list[str] | list[BaseDyn],
+        save_dir: str | None = None,
+        split: str = "train",
+        split_failures: str = "failed_attractors",
+        split_driver: str = "driver",
+        save_driver_coords_option: Literal["combined", "separate"] | None = None,
+        samples_process_interval: int = 1,
+        save_params_dir: str | None = None,
+        save_traj_stats_dir: str | None = None,
+        standardize: bool = False,
+        use_multiprocessing: bool = True,
+        silent_errors: bool = False,
+        reset_attractor_validator: bool = False,
+        **kwargs,
+    ) -> None:
+        """
+        Sample perturbed ensembles for a given set of dynamical systems. Optionally,
+        save the ensembles to disk and save the parameters to a json file.
+        """
+        if save_driver_coords_option is not None:
+            assert save_driver_coords_option in ["combined", "separate"], (
+                f"Invalid save_driver_coords_option: {save_driver_coords_option}"
+            )
+        sys_names = [sys if isinstance(sys, str) else sys.name for sys in systems]
+        assert len(set(sys_names)) == len(sys_names), (
+            "Cannot have duplicate system names"
+        )
+        if save_dir is not None:
+            logger.info(
+                f"Making {split} split with {len(systems)} dynamical systems"
+                f" (showing first {min(10, len(sys_names))}): \n {sys_names[:10]}"
+            )
+        is_all_basedyn = all(isinstance(sys, BaseDyn) for sys in systems)
+
+        if self.attractor_validator is not None and reset_attractor_validator:
+            self.attractor_validator.reset()
+            self.failed_integrations.clear()
+
+        save_dyst_dir, driver_dyst_dir, failed_dyst_dir = (
+            self._prepare_save_directories(
+                save_dir,
+                split,
+                split_failures=split_failures,
+                split_driver=split_driver,
+                save_driver_coords_option=save_driver_coords_option,
+            )
+        )
+
+        # NOTE: we define number of total samples as (num_param_perturbations * num_ics) + 1 to account for the default ensemble (with one initial condition)
+        num_total_samples = self.num_param_perturbations * self.num_ics + 1
+
+        callbacks = [
+            self._reset_events_callback,
+            self._validate_and_save_ensemble_callback(
+                num_total_samples,
+                samples_process_interval,
+                save_dyst_dir,
+                driver_dyst_dir=driver_dyst_dir,
+                save_driver_coords_option=save_driver_coords_option,
+                failed_dyst_dir=failed_dyst_dir,
+                save_params_dir=save_params_dir,
+                save_traj_stats_dir=save_traj_stats_dir,
+            ),
+            self.save_failed_integrations_callback,
+        ]
+
+        num_periods = self.rng.choice(self.num_periods)
+        logger.info(f"Generating default ensemble with {num_periods} periods")
+
+        # treat the default params as the zeroth sample, enforce just one (default) initial condition
+        default_ensemble = make_trajectory_ensemble(
+            self.num_points,
+            subset=systems,
+            pts_per_period=self.num_points // num_periods,
+            event_fns=self.events,
+            use_multiprocessing=use_multiprocessing,
+            silent_errors=silent_errors,
+            multiprocess_kwargs=self.multiprocess_kwargs,
+            **kwargs,
+        )
+        failed_integrations = [
+            key
+            for key, value in default_ensemble.items()
+            if value is None or np.isnan(value).any()
+        ]
+        default_ensemble = {
+            key: value
+            for key, value in default_ensemble.items()
+            if key not in failed_integrations
+        }
+        # Apply all the callbacks to the default ensemble (sample_idx=0)
+        for callback in callbacks:
+            callback(
+                sample_idx=0,
+                ensemble=default_ensemble,
+                excluded_keys=failed_integrations,
+                perturbed_systems=systems if is_all_basedyn else None,
+                num_periods=num_periods,  # NOTE: add other metadata eventually, as kwargs
+            )
+
+        logger.info("Generating perturbed ensembles...")
+
+        self._generate_ensembles(
+            systems,
+            postprocessing_callbacks=callbacks,
+            standardize=standardize,
+            use_multiprocessing=use_multiprocessing,
+            silent_errors=silent_errors,
+            **kwargs,
+        )
 
     def _generate_ensembles(
         self,
@@ -454,6 +486,7 @@ class DynSysSampler(BaseDynSysSampler):
                             ensemble=ensemble,
                             excluded_keys=excluded_systems,
                             perturbed_systems=perturbed_systems,
+                            num_periods=num_periods,
                         )
 
                     pbar.update(1)
@@ -476,12 +509,14 @@ class DynSysSampler(BaseDynSysSampler):
         num_total_samples: int,
         samples_process_interval: int,
         save_dyst_dir: str | None = None,
+        driver_dyst_dir: str | None = None,
+        save_driver_coords_option: Literal["combined", "separate"] | None = None,
         failed_dyst_dir: str | None = None,
         save_params_dir: str | None = None,
         save_traj_stats_dir: str | None = None,
     ):
         """
-        Callback to process and save ensembles and parameters
+        Callback to process and save ensembles and parameters. Wraps around _process_and_save_ensemble by making it a callback.
         """
         ensemble_list = []
 
@@ -500,9 +535,12 @@ class DynSysSampler(BaseDynSysSampler):
                     sample_idx,
                     perturbed_systems=kwargs.get("perturbed_systems"),
                     save_dyst_dir=save_dyst_dir,
+                    driver_dyst_dir=driver_dyst_dir,
+                    save_driver_coords_option=save_driver_coords_option,
                     failed_dyst_dir=failed_dyst_dir,
                     save_params_dir=save_params_dir,
                     save_traj_stats_dir=save_traj_stats_dir,
+                    num_periods=kwargs.get("num_periods"),
                 )
                 ensemble_list.clear()
 
@@ -514,13 +552,48 @@ class DynSysSampler(BaseDynSysSampler):
         sample_idx: int,
         perturbed_systems: list[BaseDyn] | None = None,
         save_dyst_dir: str | None = None,
+        driver_dyst_dir: str | None = None,
+        save_driver_coords_option: Literal["combined", "separate"] | None = None,
         failed_dyst_dir: str | None = None,
         save_params_dir: str | None = None,
         save_traj_stats_dir: str | None = None,
+        num_periods: int | None = None,
     ) -> None:
         """
-        Process the ensemble list by checking for valid attractors and filtering out invalid ones.
-        Also, transposes and stacks trajectories to get shape (num_samples, num_dims, num_timesteps).
+        Processes a list of trajectory ensembles, validates attractors, and saves results to disk.
+
+        This method performs the following steps:
+        1. Stacks and transposes the input list of ensembles to produce arrays of shape
+           (num_samples, num_dims, num_timesteps) for each system.
+        2. If `perturbed_systems` is provided, determines the driver dimension for each system.
+           - If `save_driver_coords_option` is set, extracts and stores the driver coordinates separately.
+           - For skew product systems, only the response coordinates are retained in the ensemble.
+        3. If an attractor validator is present, applies it to filter out invalid trajectories:
+           - The validator is run in parallel and returns valid and failed ensembles, as well as a mapping
+             of successful sample indices.
+           - If driver coordinates are being saved, they are filtered to match the valid samples.
+           - Asserts that the filtered driver and response ensembles are consistent.
+           - Records the number of valid systems.
+        4. Saves the processed ensembles to disk:
+           - The valid response ensemble is saved to `save_dyst_dir`.
+           - If driver coordinates are being saved, they are saved either separately (driver coords in f"{save_dyst_dir}_driver") or combined with the response (to save_dyst_dir),
+             depending on `save_driver_coords_option`.
+           - The failed combined (driver + response) ensemble is saved to `failed_dyst_dir` if provided.
+        5. If parameter saving is enabled, saves the parameters of successful and failed systems to separate JSON files.
+        6. If trajectory statistics saving is enabled, saves statistics for the valid (response) ensemble.
+
+        Args:
+            ensemble_list: List of dictionaries mapping system names to trajectory arrays for each sample.
+            sample_idx: Index of the current sample batch.
+            perturbed_systems: List of perturbed system objects corresponding to the ensemble (optional).
+            save_dyst_dir: Directory to save valid trajectory ensembles (optional).
+            driver_dyst_dir: Directory to save the driver part of valid skew product system trajectory (response) ensembles (optional).
+            failed_dyst_dir: Directory to save failed trajectory ensembles (optional).
+            save_params_dir: Directory to save system parameters (optional).
+            save_traj_stats_dir: Directory to save trajectory statistics (optional).
+            save_driver_coords_option: If set, controls saving of driver coordinates:
+                - "separate": Save driver coordinates in a separate subdirectory, to f"{save_dyst_dir}_driver"
+                - "combined": Concatenate driver and response coordinates and save together, to save_dyst_dir
         """
         # stack and transpose to get shape (num_samples, num_dims, num_timesteps) from original (num_timesteps, num_dims)
         ensemble_sys_names = [sys for ens in ensemble_list for sys in ens.keys()]
@@ -530,27 +603,82 @@ class DynSysSampler(BaseDynSysSampler):
             ).transpose(0, 2, 1)
             for sys in ensemble_sys_names
         }
+        driver_ensemble = None
 
         current_param_pert_summary = {}
         if perturbed_systems is not None:
-            dims = {
+            driver_dims = {
                 sys.name: getattr(sys, "driver_dim", 0) for sys in perturbed_systems
+            }  # defaults to 0 when we deal with base (non-skew) systems (which don't have the driver_dim attribute)
+
+            if save_driver_coords_option is not None:
+                driver_ensemble = {
+                    sys: traj[:, : driver_dims[sys], :]
+                    for sys, traj in ensemble.items()
+                }
+
+            # if skew system, only saves the response coordinates in the ensemble
+            ensemble = {
+                sys: traj[:, driver_dims[sys] :, :] for sys, traj in ensemble.items()
             }
-            ensemble = {sys: traj[:, dims[sys] :, :] for sys, traj in ensemble.items()}
 
         current_param_pert_summary["num_systems_integrated"] = len(ensemble)
 
         if self.attractor_validator is not None:
             logger.info(f"Applying attractor validator to {len(ensemble)} systems")
-            ensemble, failed_ensemble = (
+            # NOTE: we enforce that in the case of skew systems, only the response coordinates are passed to the attractor validator
+            ensemble, failed_ensemble, successful_samples_dict = (
                 self.attractor_validator.multiprocessed_filter_ensemble(
                     ensemble, first_sample_idx=sample_idx
                 )
             )
+            # Filter the driver ensemble to match the successful samples from the attractor validator
+            if driver_ensemble:
+                transient_time = int(self.num_points * self.validator_transient_frac)
+                print(f"Transient time: {transient_time}")
+                failed_driver_ensemble = {}
+                for sys, traj in driver_ensemble.items():
+                    failed_inds = np.setdiff1d(
+                        np.arange(traj.shape[0]),
+                        successful_samples_dict.get(sys, []),
+                    )
+                    if failed_inds.size > 0:
+                        failed_driver_ensemble[sys] = traj[
+                            failed_inds, :, transient_time:
+                        ]
+
+                driver_ensemble = {
+                    sys: traj[
+                        np.array(successful_samples_dict[sys]), :, transient_time:
+                    ]
+                    for sys, traj in driver_ensemble.items()
+                    if successful_samples_dict.get(sys) is not None
+                    and len(successful_samples_dict[sys]) > 0
+                }
+
+                assert set(driver_ensemble) == set(ensemble), (
+                    "Driver ensemble keys mismatch"
+                )
+                assert set(failed_driver_ensemble) == set(failed_ensemble), (
+                    "Failed driver ensemble keys mismatch"
+                )
+                assert all(
+                    driver_ensemble[sys].shape[0] == ensemble[sys].shape[0]
+                    for sys in ensemble
+                ), "Driver ensemble sample count mismatch"
+                assert all(
+                    failed_driver_ensemble[sys].shape[0]
+                    == failed_ensemble[sys].shape[0]
+                    for sys in failed_ensemble
+                ), "Failed driver ensemble sample count mismatch"
+            else:
+                failed_driver_ensemble = {}
+
             logger.info(f"{len(ensemble)} systems passed attractor validator")
             current_param_pert_summary["num_systems_valid"] = len(ensemble)
         else:
             failed_ensemble = {}
+            failed_driver_ensemble = {}
 
         if self.wandb_run is not None:
             self.wandb_run.log(current_param_pert_summary)
@@ -558,23 +686,42 @@ class DynSysSampler(BaseDynSysSampler):
             logger.info(f"Logging counts per failed check: {counts_per_failed_check}")
             self.wandb_run.log(counts_per_failed_check)
 
-        if save_dyst_dir is not None:
-            process_trajs(
-                save_dyst_dir,
-                ensemble,
-                split_coords=self.split_coords,
-                verbose=self.verbose,
-                sample_idx=sample_idx,
-            )
+        save_kwargs = {
+            "split_coords": self.split_coords,
+            "verbose": self.verbose,
+            "sample_idx": sample_idx,
+            "num_periods": num_periods,
+        }
+        if save_dyst_dir:
+            if driver_ensemble:
+                if save_driver_coords_option == "separate" and driver_dyst_dir:
+                    process_trajs(driver_dyst_dir, driver_ensemble, **save_kwargs)
+                elif save_driver_coords_option == "combined":
+                    combined = {
+                        sys: np.concatenate(
+                            [ensemble[sys], driver_ensemble[sys]], axis=1
+                        )
+                        for sys in ensemble
+                    }
+                    process_trajs(save_dyst_dir, combined, **save_kwargs)
+                else:
+                    raise ValueError(
+                        f"Invalid save_driver_coords_option: {save_driver_coords_option}, or driver_ensemble should be None"
+                    )
+            else:  # default case, no driver ensemble
+                process_trajs(save_dyst_dir, ensemble, **save_kwargs)
 
-        if failed_dyst_dir is not None:
-            process_trajs(
-                failed_dyst_dir,
-                failed_ensemble,
-                split_coords=self.split_coords,
-                verbose=self.verbose,
-                sample_idx=sample_idx,
-            )
+        if failed_dyst_dir and failed_ensemble:
+            process_trajs(failed_dyst_dir, failed_ensemble, **save_kwargs)
+            # save the failed (driver + response) ensemble if skew system
+            if failed_driver_ensemble:
+                combined = {
+                    sys: np.concatenate(
+                        [failed_ensemble[sys], failed_driver_ensemble[sys]], axis=1
+                    )
+                    for sys in failed_ensemble
+                }
+                process_trajs(failed_dyst_dir, combined, **save_kwargs)
 
         if save_params_dir is not None and perturbed_systems is not None:
             successful_systems = [
@@ -739,7 +886,7 @@ class DynSysSampler(BaseDynSysSampler):
 
 
 @dataclass
-class DynSysSamplerRestartIC(BaseDynSysSampler):
+class DynSysSamplerRestartIC(DynSysSampler):
     """
     Generate trajectories of resampled initial conditions
     User calls sample_ensembles with systems: List[str], which is a list of DynSys objects initialized from saved parameters
@@ -761,133 +908,6 @@ class DynSysSamplerRestartIC(BaseDynSysSampler):
     wandb_run: wandb.sdk.wandb_run.Run | None = None  # type: ignore
 
     multiprocess_kwargs: dict = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        if isinstance(self.num_periods, int):
-            self.num_periods = [self.num_periods]
-
-        self.failed_integrations = defaultdict(list)
-        self.rng = np.random.default_rng(self.rseed)
-
-        self.attractor_validator = AttractorValidator(
-            transient_time_frac=self.validator_transient_frac,
-            tests=self.attractor_tests,
-            multiprocess_kwargs=self.multiprocess_kwargs,
-        )
-
-    def _get_counts_per_failed_check(self) -> dict[str, int]:
-        """
-        Get the number of systems that failed each check.
-        """
-        if self.attractor_validator is None:
-            return {}
-
-        counts_per_failed_check = defaultdict(int)
-        for failed_checks_lst in self.attractor_validator.failed_checks.values():
-            for entry_all_ics in failed_checks_lst:
-                for entry in entry_all_ics:
-                    _, check_name = entry
-                    counts_per_failed_check[f"failed_{check_name}"] += 1
-        return counts_per_failed_check
-
-    def _reset_events_callback(self, *args, **kwargs) -> None:
-        for event in self.events or []:
-            if hasattr(event, "reset") and callable(event.reset):
-                event.reset()
-
-    def save_failed_integrations_callback(
-        self, sample_idx: int, ensemble: dict[str, np.ndarray], **kwargs
-    ):
-        excluded_keys = kwargs.get("excluded_keys", [])
-        if len(excluded_keys) > 0:
-            logger.warning(f"Integration failed for {len(excluded_keys)} systems")
-            for dyst_name in excluded_keys:
-                self.failed_integrations[dyst_name].append(sample_idx)
-
-    def _validate_and_save_ensemble_callback(
-        self,
-        systems: list[BaseDyn],
-        save_dyst_dir: str,
-        num_total_samples: int,
-        samples_process_interval: int,
-    ):
-        """
-        Callback to process and save ensembles and parameters
-        """
-        ensemble_list = []
-
-        def _callback(sample_idx: int, ensemble: dict[str, np.ndarray], **kwargs):
-            if len(ensemble.keys()) == 0:
-                if save_dyst_dir is not None:
-                    logger.warning("No successful trajectories for this sample")
-                return
-
-            ensemble_list.append(ensemble)
-
-            is_last_sample = (sample_idx + 1) == num_total_samples
-            if ((sample_idx + 1) % samples_process_interval) == 0 or is_last_sample:
-                self._process_and_save_ensemble(
-                    systems,
-                    ensemble_list,
-                    sample_idx,
-                    save_dyst_dir,
-                )
-                ensemble_list.clear()
-
-        return _callback
-
-    def _process_and_save_ensemble(
-        self,
-        systems: list[BaseDyn],
-        ensemble_list: list[dict[str, np.ndarray]],
-        sample_idx: int,
-        save_dyst_dir: str,
-    ) -> None:
-        """
-        Process the ensemble list by checking for valid attractors and filtering out invalid ones.
-        Also, transposes and stacks trajectories to get shape (num_samples, num_dims, num_timesteps).
-        """
-        # stack and transpose to get shape (num_samples, num_dims, num_timesteps) from original (num_timesteps, num_dims)
-        ensemble_sys_names = [sys for ens in ensemble_list for sys in ens.keys()]
-        ensemble = {
-            sys: np.stack(
-                [ens[sys] for ens in ensemble_list if sys in ens], axis=0
-            ).transpose(0, 2, 1)
-            for sys in ensemble_sys_names
-        }
-
-        current_param_pert_summary = {}
-        current_param_pert_summary["num_systems_integrated"] = len(ensemble)
-
-        # NOTE: if skew, then saves only the response coords
-        dims = {sys.name: getattr(sys, "driver_dim", 0) for sys in systems}
-        ensemble = {sys: traj[:, dims[sys] :, :] for sys, traj in ensemble.items()}
-
-        if self.attractor_validator is not None:
-            logger.info(f"Applying attractor validator to {len(ensemble)} systems")
-            ensemble, _ = self.attractor_validator.multiprocessed_filter_ensemble(
-                ensemble, first_sample_idx=sample_idx
-            )
-            logger.info(f"{len(ensemble)} systems passed attractor validator")
-            current_param_pert_summary["num_systems_valid"] = len(ensemble)
-
-            # NOTE: if we also want to enforce attractor tests for the driver,
-            # we can make a separate ensemble for the driver and response, apply the attractor tests to each,
-            # and take the intersection of the valid systems (both valid driver and response)
-
-        if self.wandb_run is not None:
-            self.wandb_run.log(current_param_pert_summary)
-            counts_per_failed_check = self._get_counts_per_failed_check()
-            logger.info(f"Logging counts per failed check: {counts_per_failed_check}")
-            self.wandb_run.log(counts_per_failed_check)
-
-        process_trajs(
-            save_dyst_dir,
-            ensemble,
-            split_coords=self.split_coords,
-            verbose=False,
-            sample_idx=sample_idx,
-        )
 
     @timeit(logger=logger)
     def sample_ensembles(
@@ -912,7 +932,7 @@ class DynSysSamplerRestartIC(BaseDynSysSampler):
         )
         logger.info(
             f"Making {split} split with {len(systems)} dynamical systems"
-            f" (showing first {min(5, len(sys_names))}): \n {sys_names[:5]}"
+            f" (showing first {min(10, len(sys_names))}): \n {sys_names[:10]}"
         )
 
         if save_dir is not None:
@@ -927,10 +947,9 @@ class DynSysSamplerRestartIC(BaseDynSysSampler):
         callbacks = [
             self._reset_events_callback,
             self._validate_and_save_ensemble_callback(
-                systems,
-                save_dyst_dir,
                 self.num_ics,
                 samples_process_interval,
+                save_dyst_dir,
             ),
             self.save_failed_integrations_callback,
         ]
@@ -1011,6 +1030,8 @@ class DynSysSamplerRestartIC(BaseDynSysSampler):
                         sample_idx=ic_idx + starting_sample_idx,
                         ensemble=ensemble,
                         excluded_keys=excluded_systems,
+                        perturbed_systems=systems,
+                        num_periods=num_periods,
                     )
 
             # drop systems that failed integration and prepare IC cache

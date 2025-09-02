@@ -1,18 +1,18 @@
 import logging
 import os
 import time
+import warnings
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
 from typing import Callable, List, Literal, Union
-import warnings
 
 import numpy as np
+
 try:
     from gluonts.dataset.arrow import ArrowWriter
 except ImportError:
     warnings.warn("gluonts not installed, function convert_to_arrow will not work")
-
 
 
 def safe_standardize(
@@ -141,6 +141,7 @@ def process_trajs(
     split_coords: bool = False,
     verbose: bool = False,
     sample_idx: int = 0,
+    num_periods: int | None = None,
 ) -> None:
     """
     Saves each trajectory in timeseries ensemble to a separate directory
@@ -153,6 +154,7 @@ def process_trajs(
         split_coords: Whether to split the coordinates by dimension
         verbose: Whether to print verbose output
         sample_idx: The sample index to use for the trajectories
+        num_periods: The (optionally provided) number of "periods" (on a Fourier or Lyapunov timescale) used to generate these trajectories
     """
     for sys_name, trajectories in timeseries.items():
         if verbose:
@@ -164,17 +166,23 @@ def process_trajs(
         os.makedirs(system_folder, exist_ok=True)
 
         for i, trajectory in enumerate(trajectories):
+            # trajectory has shape (num_dims, num_timesteps) or (num_timesteps,)
             curr_sample_idx = sample_idx + i
 
             if trajectory.ndim == 1:
+                # if trajectory is 1D, make it 2D, (1, num_timesteps)
                 trajectory = np.expand_dims(trajectory, axis=0)
             if verbose:
                 print(
                     f"Saving {sys_name} trajectory {curr_sample_idx} with shape {trajectory.shape}"
                 )
 
-            path = os.path.join(
-                system_folder, f"{curr_sample_idx}_T-{trajectory.shape[-1]}.arrow"
+            filename = (
+                f"{curr_sample_idx}_T-{trajectory.shape[-1]}_dim-{trajectory.shape[0]}"
             )
+            if num_periods is not None:
+                filename += f"_period-{num_periods}"
+            filename += ".arrow"
+            path = os.path.join(system_folder, filename)
 
             convert_to_arrow(path, trajectory, split_coords=split_coords)
