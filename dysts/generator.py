@@ -380,6 +380,7 @@ class DynSysSampler(BaseDynSysSampler):
         samples_process_interval: int = 1,
         save_params_dir: str | None = None,
         save_traj_stats_dir: str | None = None,
+        save_integration_timepoints_dir: str | None = None,
         standardize: bool = False,
         use_multiprocessing: bool = True,
         silent_errors: bool = False,
@@ -434,6 +435,7 @@ class DynSysSampler(BaseDynSysSampler):
                 failed_dyst_dir=failed_dyst_dir,
                 save_params_dir=save_params_dir,
                 save_traj_stats_dir=save_traj_stats_dir,
+                save_integration_timepoints_dir=save_integration_timepoints_dir,
             ),
             self.save_failed_integrations_callback,
         ]
@@ -658,6 +660,7 @@ class DynSysSampler(BaseDynSysSampler):
         failed_dyst_dir: str | None = None,
         save_params_dir: str | None = None,
         save_traj_stats_dir: str | None = None,
+        save_integration_timepoints_dir: str | None = None,
     ):
         """
         Callback to process and save ensembles and parameters. Wraps around _process_and_save_ensemble by making it a callback.
@@ -694,6 +697,7 @@ class DynSysSampler(BaseDynSysSampler):
                     failed_dyst_dir=failed_dyst_dir,
                     save_params_dir=save_params_dir,
                     save_traj_stats_dir=save_traj_stats_dir,
+                    save_integration_timepoints_dir=save_integration_timepoints_dir,
                     num_periods=kwargs.get("num_periods"),
                 )
                 ensemble_list.clear()
@@ -712,6 +716,7 @@ class DynSysSampler(BaseDynSysSampler):
         failed_dyst_dir: str | None = None,
         save_params_dir: str | None = None,
         save_traj_stats_dir: str | None = None,
+        save_integration_timepoints_dir: str | None = None,
         num_periods: int | None = None,
     ) -> None:
         """
@@ -746,6 +751,7 @@ class DynSysSampler(BaseDynSysSampler):
             failed_dyst_dir: Directory to save failed trajectory ensembles (optional).
             save_params_dir: Directory to save system parameters (optional).
             save_traj_stats_dir: Directory to save trajectory statistics (optional).
+            save_integration_timepoints_dir: Directory to save integration timepoints (optional).
             save_driver_coords_option: If set, controls saving of driver coordinates:
                 - "separate": Save driver coordinates in a separate subdirectory, to f"{save_dyst_dir}_driver"
                 - "combined": Concatenate driver and response coordinates and save together, to save_dyst_dir
@@ -873,6 +879,14 @@ class DynSysSampler(BaseDynSysSampler):
                             ),
                             verbose=self.verbose,
                         )
+                    # save the integration timepoints (ts_ensemble)
+                    if save_integration_timepoints_dir is not None:
+                        logger.info(
+                            f"Saving solve_ivp integration timepoints to {save_integration_timepoints_dir}"
+                        )
+                        process_trajs(
+                            save_integration_timepoints_dir, ts_ensemble, **save_kwargs
+                        )
                 if driver_ensemble is not None:
                     combined = combine_ensembles(ensemble, driver_ensemble, axis=1)
                 else:
@@ -967,34 +981,48 @@ class DynSysSampler(BaseDynSysSampler):
             traj_stats = {}
 
         for sys in systems:
+            # At this point, trajectories are of shape (num_samples, num_dimensions, num_timepoints) since we transposed in _process_and_save_ensemble
+            # ... where timepoints is after cutting off the first transient_time points
             trajectories = ensemble[sys.name]
             if sys.name not in traj_stats:
                 traj_stats[sys.name] = []
 
-            init_conds, means, stds, mean_amps, flow_rms = [], [], [], [], []
+            init_conds, final_conds, means, stds, mean_amps, flow_rms = (
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+            )
 
-            for traj in trajectories:
+            for i, traj in enumerate(trajectories):
+                # traj is of shape (num_dimensions, num_timepoints)
                 init_conds.append(traj[:, 0].tolist())
+                final_conds.append(traj[:, -1].tolist())
                 means.append(traj.mean(axis=1).tolist())
                 stds.append(traj.std(axis=1).tolist())
                 mean_amps.append(np.mean(np.abs(traj), axis=1).tolist())
 
-            flow_rms = None
-            if ts_ensemble is not None:
-                flow_rms = [
-                    np.sqrt(
-                        np.mean(
-                            [np.asarray(sys(x, t)) ** 2 for x, t in zip(traj.T, ts)],  # type: ignore
-                            axis=0,
-                        )
-                    ).tolist()
-                    for traj, ts in zip(trajectories, ts_ensemble[sys.name])
-                ]
+                if ts_ensemble is not None:
+                    integration_timepoints = ts_ensemble[sys.name][i]
+                    flow_rms.append(
+                        np.sqrt(
+                            np.mean(
+                                [
+                                    np.asarray(sys(x, t)) ** 2  # type: ignore
+                                    for x, t in zip(traj.T, integration_timepoints)
+                                ],
+                                axis=0,
+                            )
+                        ).tolist()
+                    )
 
             unwrap = lambda v: v[0] if isinstance(v, list) and len(v) == 1 else v
             traj_stats_entry = {
                 "sample_idx": sample_idx,
                 "ic": unwrap(init_conds),
+                "final": unwrap(final_conds),
                 "mean": unwrap(means),
                 "std": unwrap(stds),
                 "mean_amp": unwrap(mean_amps),
