@@ -142,8 +142,9 @@ def _compute_trajectory(
     system: str | BaseDyn,
     event_fns: Sequence[Callable] | None,
     silent_errors: bool = False,
+    return_times: bool = False,
     **kwargs: Any,
-) -> Array | None:
+) -> Array | tuple[Array, Array] | None | tuple[None, None]:
     """Helper function to compute a single trajectory for a dynamical system.
 
     Args:
@@ -152,32 +153,30 @@ def _compute_trajectory(
         event_fns: A list of functions that take a dynamical system and returns a
             solve_ivp compatible event function
         silent_errors: Whether to fail silently if an error occurs
+        return_times: Whether to return the timepoints at which the solution was computed
         **kwargs: Additional arguments passed to make_trajectory
 
     Returns:
-        The computed trajectory, or None if error occurs and silent_errors=True
+        The computed trajectory, or None if error occurs and silent_errors=True, and a tuple of (timepoints, trajectory) if return_times=True
     """
-    if isinstance(system, str):
-        sys = getattr(dfl, system)()
-    else:
-        sys = system
+    sys = getattr(dfl, system)() if isinstance(system, str) else system
 
-    # if event functions are provided, resolve them
-    # and pass into make_trajectory as a kwarg
+    # if event functions are provided, resolve them and pass into make_trajectory as a kwarg
     events = (
         None
         if event_fns is None
         else [_resolve_event_signature(sys, event_fn) for event_fn in event_fns]
     )
-
     try:
-        traj = sys.make_trajectory(n, events=events, **kwargs)
-    except Exception as exception:
+        res = sys.make_trajectory(n, events=events, return_times=return_times, **kwargs)
+        if return_times:
+            ts, traj = res
+            return (ts, traj)
+        return res
+    except Exception:
         if silent_errors:
-            return None
-        raise exception
-
-    return traj
+            return (None, None) if return_times else None
+        raise
 
 
 def make_trajectory_ensemble(
@@ -189,7 +188,7 @@ def make_trajectory_ensemble(
     silent_errors: bool = False,
     multiprocess_kwargs: dict[str, Any] = {},
     **kwargs,
-) -> dict[str, Array | None]:
+) -> dict[str, Array | tuple[Array, Array] | None | tuple[None, None]]:
     """
     Integrate multiple dynamical systems with identical settings
 
@@ -245,7 +244,7 @@ def _multiprocessed_compute_trajectory(
     silent_errors: bool = False,
     multiprocess_kwargs: dict[str, Any] = {},
     **kwargs: Any,
-) -> dict[str, Array | None]:
+) -> dict[str, Array | tuple[Array, Array] | None | tuple[None, None]]:
     """Helper for handling multiprocessed integration with _compute_trajectory"""
 
     # loose check to just count the number of unspecified parameters in the event functions
@@ -279,11 +278,13 @@ def compute_trajectory_statistics(
         datapath (str): Path to save the computed statistics to a JSON file
         kwargs: Additional keyword arguments passed to the integration routine
     """
+    # Ensure return_times=False for statistics computation
+    kwargs.setdefault("return_times", False)
     sols = make_trajectory_ensemble(n, subset=subset, **kwargs)
     stats = {
         name: {"mean": sol.mean(axis=0), "std": sol.std(axis=0)}
         for name, sol in sols.items()
-        if sol is not None
+        if sol is not None and not isinstance(sol, tuple)
     }
 
     # Save the computed statistics to a JSON file

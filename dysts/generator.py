@@ -20,6 +20,105 @@ from .sampling import BaseSampler, OnAttractorInitCondSampler
 from .systems import make_trajectory_ensemble
 from .utils import dict_demote_from_numpy, process_trajs, timeit
 
+
+def combine_ensembles(
+    ensemble_A: dict[str, np.ndarray],
+    ensemble_B: dict[str, np.ndarray],
+    axis: int = -1,
+) -> dict[str, np.ndarray]:
+    """
+    Combine ensembles A and B.
+    Default behavior is to concatenate along the last axis (in our convention, this is the dimension (number of channels) axis)
+    """
+    assert set(ensemble_A) == set(ensemble_B), "Ensemble keys mismatch"
+    assert all(
+        ensemble_A[sys].shape[0] == ensemble_B[sys].shape[0] for sys in ensemble_A
+    ), "Ensemble sample count mismatch"
+    return {
+        sys: np.concatenate([ensemble_A[sys], ensemble_B[sys]], axis=axis)
+        for sys in ensemble_A
+    }
+
+
+def filter_ensemble_by_successful_samples(
+    ensemble: dict[str, np.ndarray] | None,
+    successful_samples_dict: dict[str, list[int]],
+    transient_time: int,
+    successful_ensemble: dict[str, np.ndarray] | None = None,
+    failed_ensemble: dict[str, np.ndarray] | None = None,
+    verbose: bool = True,
+) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+    """
+    Filter an ensemble based on successful samples from attractor validation.
+
+    This function takes an ensemble and filters it to match the keys and sample indices of successful_samples_dict
+
+    Args:
+        ensemble: Dictionary mapping system names to trajectory arrays.
+                        Shape: (num_samples, num_dims, num_timesteps)
+        successful_samples_dict: Dictionary mapping system names to lists of successful sample indices
+        transient_time: Total number of time points in the trajectories
+        successful_ensemble: Dictionary of successful ensembles (for validation)
+        failed_ensemble: Dictionary of failed ensembles (for validation)
+        verbose: Whether to print transient time information
+
+    Returns:
+        tuple: (filtered_ensemble, failed_filtered_ensemble)
+            - filtered_ensemble: Ensemble for successful samples only
+            - failed_filtered_ensemble: Ensemble for failed samples only
+
+    Raises:
+        AssertionError: If the filtered ensembles don't match the response ensembles in terms of
+                       system keys or sample counts.
+    """
+    if ensemble is None:
+        return {}, {}
+
+    if verbose:
+        print(f"Transient time: {transient_time}")
+
+    failed_filtered_ensemble = {}
+    for sys, traj in ensemble.items():
+        failed_inds = np.setdiff1d(
+            # np.arange(traj.shape[0]),
+            np.arange(1),  # a bit hacky, because process_sample_interval is 1
+            successful_samples_dict.get(sys, []),
+        )
+        if failed_inds.size > 0:
+            failed_filtered_ensemble[sys] = traj[failed_inds, ..., transient_time:]
+
+    filtered_ensemble = {
+        sys: traj[np.array(successful_samples_dict[sys]), ..., transient_time:]
+        for sys, traj in ensemble.items()
+        if successful_samples_dict.get(sys) is not None
+        and len(successful_samples_dict[sys]) > 0
+    }
+
+    # Validation assertions
+    if successful_ensemble is not None:
+        assert set(filtered_ensemble) == set(successful_ensemble), (
+            "Ensemble keys mismatch"
+        )
+        assert all(
+            filtered_ensemble[sys].shape[0] == successful_ensemble[sys].shape[0]
+            for sys in successful_ensemble
+        ), "Ensemble sample count mismatch"
+
+    if failed_ensemble is not None:
+        if set(failed_filtered_ensemble) != set(failed_ensemble):
+            breakpoint()
+        # assert set(failed_filtered_ensemble) == set(failed_ensemble), (
+        #     "Failed ensemble keys mismatch"
+        # )
+
+        assert all(
+            failed_filtered_ensemble[sys].shape[0] == failed_ensemble[sys].shape[0]
+            for sys in failed_ensemble
+        ), "Failed ensemble sample count mismatch"
+
+    return filtered_ensemble, failed_filtered_ensemble
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -285,6 +384,7 @@ class DynSysSampler(BaseDynSysSampler):
         use_multiprocessing: bool = True,
         silent_errors: bool = False,
         reset_attractor_validator: bool = False,
+        return_times: bool = True,
         **kwargs,
     ) -> None:
         """
@@ -350,23 +450,45 @@ class DynSysSampler(BaseDynSysSampler):
             use_multiprocessing=use_multiprocessing,
             silent_errors=silent_errors,
             multiprocess_kwargs=self.multiprocess_kwargs,
+            return_times=return_times,
             **kwargs,
         )
-        failed_integrations = [
-            key
-            for key, value in default_ensemble.items()
-            if value is None or np.isnan(value).any()
-        ]
-        default_ensemble = {
-            key: value
-            for key, value in default_ensemble.items()
-            if key not in failed_integrations
-        }
+
+        if return_times:
+            failed_integrations = [
+                k
+                for k, v in default_ensemble.items()
+                if v[1] is None or np.isnan(v[1]).any()  # type: ignore
+            ]
+            default_ts_ensemble = {
+                k: v[0]  # type: ignore
+                for k, v in default_ensemble.items()
+                if k not in failed_integrations
+            }
+            default_ensemble = {
+                k: v[1]  # type: ignore
+                for k, v in default_ensemble.items()
+                if k not in failed_integrations
+            }
+        else:
+            failed_integrations = [
+                k
+                for k, v in default_ensemble.items()
+                if v is None or np.isnan(v).any()  # type: ignore
+            ]
+            default_ts_ensemble = None
+            default_ensemble = {
+                k: v
+                for k, v in default_ensemble.items()
+                if k not in failed_integrations
+            }
+
         # Apply all the callbacks to the default ensemble (sample_idx=0)
         for callback in callbacks:
             callback(
                 sample_idx=0,
                 ensemble=default_ensemble,
+                ts_ensemble=default_ts_ensemble,
                 excluded_keys=failed_integrations,
                 perturbed_systems=systems if is_all_basedyn else None,
                 num_periods=num_periods,  # NOTE: add other metadata eventually, as kwargs
@@ -380,6 +502,7 @@ class DynSysSampler(BaseDynSysSampler):
             standardize=standardize,
             use_multiprocessing=use_multiprocessing,
             silent_errors=silent_errors,
+            return_times=return_times,
             **kwargs,
         )
 
@@ -389,6 +512,7 @@ class DynSysSampler(BaseDynSysSampler):
         use_multiprocessing: bool = True,
         postprocessing_callbacks: list[Callable] | None = None,
         silent_errors: bool = False,
+        return_times: bool = True,
         **kwargs,
     ) -> None:
         """
@@ -465,25 +589,45 @@ class DynSysSampler(BaseDynSysSampler):
                         use_multiprocessing=use_multiprocessing,
                         silent_errors=silent_errors,
                         multiprocess_kwargs=self.multiprocess_kwargs,
+                        return_times=return_times,
                         **kwargs,
                     )
 
-                    # filter out failed integrations
-                    excluded_systems.extend(
-                        key
-                        for key, value in ensemble.items()
-                        if value is None or np.isnan(value).any()
-                    )
-                    ensemble = {
-                        key: value
-                        for key, value in ensemble.items()
-                        if key not in excluded_systems
-                    }
+                    # Exclude failed integrations
+                    if return_times:
+                        excluded_systems.extend(
+                            k
+                            for k, v in ensemble.items()
+                            if v[1] is None or np.isnan(v[1]).any()  # type: ignore
+                        )
+                        ts_ensemble = {
+                            k: v[0]  # type: ignore
+                            for k, v in ensemble.items()
+                            if k not in excluded_systems
+                        }
+                        ensemble = {
+                            k: v[1]  # type: ignore
+                            for k, v in ensemble.items()
+                            if k not in excluded_systems
+                        }
+                    else:
+                        excluded_systems.extend(
+                            k
+                            for k, v in ensemble.items()
+                            if v is None or np.isnan(v).any()
+                        )
+                        ts_ensemble = None
+                        ensemble = {
+                            k: v
+                            for k, v in ensemble.items()
+                            if k not in excluded_systems
+                        }
 
                     for callback in postprocessing_callbacks or []:
                         callback(
                             sample_idx=sample_idx,
                             ensemble=ensemble,
+                            ts_ensemble=ts_ensemble,
                             excluded_keys=excluded_systems,
                             perturbed_systems=perturbed_systems,
                             num_periods=num_periods,
@@ -497,7 +641,7 @@ class DynSysSampler(BaseDynSysSampler):
             if hasattr(event, "reset") and callable(event.reset):
                 event.reset()
 
-    def save_failed_integrations_callback(self, sample_idx, ensemble, **kwargs):
+    def save_failed_integrations_callback(self, sample_idx, *args, **kwargs):
         excluded_keys = kwargs.get("excluded_keys", [])
         if len(excluded_keys) > 0:
             logger.warning(f"Integration failed for {len(excluded_keys)} systems")
@@ -519,19 +663,29 @@ class DynSysSampler(BaseDynSysSampler):
         Callback to process and save ensembles and parameters. Wraps around _process_and_save_ensemble by making it a callback.
         """
         ensemble_list = []
+        ts_ensemble_list = []
 
-        def _callback(sample_idx: int, ensemble: dict[str, np.ndarray], **kwargs):
+        def _callback(
+            sample_idx: int,
+            ensemble: dict[str, np.ndarray],
+            ts_ensemble: dict[str, np.ndarray] | None = None,
+            **kwargs,
+        ):
             if len(ensemble.keys()) == 0:
                 if save_dyst_dir is not None:
                     logger.warning("No successful trajectories for this sample")
                 return
 
             ensemble_list.append(ensemble)
+            ts_ensemble_list.append(ts_ensemble)
 
             is_last_sample = (sample_idx + 1) == num_total_samples
             if ((sample_idx + 1) % samples_process_interval) == 0 or is_last_sample:
                 self._process_and_save_ensemble(
                     ensemble_list,
+                    ts_ensemble_list
+                    if all(ts is not None for ts in ts_ensemble_list)
+                    else None,  # hacky
                     sample_idx,
                     perturbed_systems=kwargs.get("perturbed_systems"),
                     save_dyst_dir=save_dyst_dir,
@@ -549,6 +703,7 @@ class DynSysSampler(BaseDynSysSampler):
     def _process_and_save_ensemble(
         self,
         ensemble_list: list[dict[str, np.ndarray]],
+        ts_ensemble_list: list[dict[str, np.ndarray]] | None,
         sample_idx: int,
         perturbed_systems: list[BaseDyn] | None = None,
         save_dyst_dir: str | None = None,
@@ -603,6 +758,7 @@ class DynSysSampler(BaseDynSysSampler):
             ).transpose(0, 2, 1)
             for sys in ensemble_sys_names
         }
+
         driver_ensemble = None
 
         current_param_pert_summary = {}
@@ -633,46 +789,16 @@ class DynSysSampler(BaseDynSysSampler):
                 )
             )
             # Filter the driver ensemble to match the successful samples from the attractor validator
-            if driver_ensemble:
-                transient_time = int(self.num_points * self.validator_transient_frac)
-                print(f"Transient time: {transient_time}")
-                failed_driver_ensemble = {}
-                for sys, traj in driver_ensemble.items():
-                    failed_inds = np.setdiff1d(
-                        np.arange(traj.shape[0]),
-                        successful_samples_dict.get(sys, []),
-                    )
-                    if failed_inds.size > 0:
-                        failed_driver_ensemble[sys] = traj[
-                            failed_inds, :, transient_time:
-                        ]
-
-                driver_ensemble = {
-                    sys: traj[
-                        np.array(successful_samples_dict[sys]), :, transient_time:
-                    ]
-                    for sys, traj in driver_ensemble.items()
-                    if successful_samples_dict.get(sys) is not None
-                    and len(successful_samples_dict[sys]) > 0
-                }
-
-                assert set(driver_ensemble) == set(ensemble), (
-                    "Driver ensemble keys mismatch"
+            driver_ensemble, failed_driver_ensemble = (
+                filter_ensemble_by_successful_samples(
+                    ensemble=driver_ensemble,
+                    successful_samples_dict=successful_samples_dict,
+                    successful_ensemble=ensemble,
+                    failed_ensemble=failed_ensemble,
+                    transient_time=int(self.num_points * self.validator_transient_frac),
+                    verbose=self.verbose,
                 )
-                assert set(failed_driver_ensemble) == set(failed_ensemble), (
-                    "Failed driver ensemble keys mismatch"
-                )
-                assert all(
-                    driver_ensemble[sys].shape[0] == ensemble[sys].shape[0]
-                    for sys in ensemble
-                ), "Driver ensemble sample count mismatch"
-                assert all(
-                    failed_driver_ensemble[sys].shape[0]
-                    == failed_ensemble[sys].shape[0]
-                    for sys in failed_ensemble
-                ), "Failed driver ensemble sample count mismatch"
-            else:
-                failed_driver_ensemble = {}
+            )
 
             logger.info(f"{len(ensemble)} systems passed attractor validator")
             current_param_pert_summary["num_systems_valid"] = len(ensemble)
@@ -697,12 +823,7 @@ class DynSysSampler(BaseDynSysSampler):
                 if save_driver_coords_option == "separate" and driver_dyst_dir:
                     process_trajs(driver_dyst_dir, driver_ensemble, **save_kwargs)
                 elif save_driver_coords_option == "combined":
-                    combined = {
-                        sys: np.concatenate(
-                            [ensemble[sys], driver_ensemble[sys]], axis=1
-                        )
-                        for sys in ensemble
-                    }
+                    combined = combine_ensembles(ensemble, driver_ensemble, axis=1)
                     process_trajs(save_dyst_dir, combined, **save_kwargs)
                 else:
                     raise ValueError(
@@ -715,31 +836,55 @@ class DynSysSampler(BaseDynSysSampler):
             process_trajs(failed_dyst_dir, failed_ensemble, **save_kwargs)
             # save the failed (driver + response) ensemble if skew system
             if failed_driver_ensemble:
-                combined = {
-                    sys: np.concatenate(
-                        [failed_ensemble[sys], failed_driver_ensemble[sys]], axis=1
-                    )
-                    for sys in failed_ensemble
-                }
+                combined = combine_ensembles(
+                    failed_ensemble, failed_driver_ensemble, axis=1
+                )
                 process_trajs(failed_dyst_dir, combined, **save_kwargs)
 
         if save_params_dir is not None and perturbed_systems is not None:
-            successful_systems = [
-                sys for sys in perturbed_systems if sys.name in ensemble.keys()
-            ]
-            failed_systems = [
-                sys for sys in perturbed_systems if sys.name in failed_ensemble.keys()
-            ]
-
-            success_dir = os.path.join(save_params_dir, "successes.json")
-            self._save_parameters(sample_idx, successful_systems, success_dir)
-
-            fail_dir = os.path.join(save_params_dir, "failures.json")
-            self._save_parameters(sample_idx, failed_systems, fail_dir)
+            systems_by_status = {}
+            for status, ens in [("successes", ensemble), ("failures", failed_ensemble)]:
+                systems = [sys for sys in perturbed_systems if sys.name in ens]
+                systems_by_status[status] = systems
+                self._save_parameters(
+                    sample_idx,
+                    systems,
+                    os.path.join(save_params_dir, f"{status}.json"),
+                )
 
             # only save system stats for successful samples, and if we also save parameters
             if save_traj_stats_dir is not None:
-                self._save_traj_stats(ensemble, save_dir=save_traj_stats_dir)
+                ts_ensemble = None
+                if ts_ensemble_list is not None:
+                    ts_ensemble = {
+                        sys: np.stack(
+                            [ens[sys] for ens in ts_ensemble_list if sys in ens], axis=0
+                        )
+                        for sys in ensemble_sys_names
+                    }
+                    if self.attractor_validator is not None:
+                        ts_ensemble, _ = filter_ensemble_by_successful_samples(
+                            ensemble=ts_ensemble,
+                            successful_samples_dict=successful_samples_dict,
+                            successful_ensemble=ensemble,
+                            failed_ensemble=failed_ensemble,
+                            transient_time=int(
+                                self.num_points * self.validator_transient_frac
+                            ),
+                            verbose=self.verbose,
+                        )
+                if driver_ensemble is not None:
+                    combined = combine_ensembles(ensemble, driver_ensemble, axis=1)
+                else:
+                    combined = ensemble
+
+                self._save_traj_stats(
+                    sample_idx,
+                    systems_by_status["successes"],
+                    combined,
+                    ts_ensemble=ts_ensemble,
+                    save_path=os.path.join(save_traj_stats_dir, "successes.json"),
+                )
 
     def _save_parameters(
         self,
@@ -786,19 +931,34 @@ class DynSysSampler(BaseDynSysSampler):
 
     def _save_traj_stats(
         self,
+        sample_idx: int,
+        systems: list[BaseDyn],
         ensemble: dict[str, np.ndarray],
-        save_dir: str | None = None,
+        ts_ensemble: dict[str, np.ndarray] | None = None,
+        save_path: str | None = None,
     ) -> None:
         """
         Save trajectory statistics to a json file.
         We do this for downstream analysis and re-initialization without depending on loading trajectories from Arrow files
-        TODO: pass in systems: List[DynSys] so we can also use it to save flow_rms
+
+        ensemble is a dict mapping system names to trajectories of shape (num_samples, num_dimensions, num_timepoints)
+        ts_ensemble is a dict mapping system names to timepoints of shape (num_samples, num_timepoints)
+
         """
-        system_names = list(ensemble.keys())
-        if save_dir is None or len(system_names) == 0:
+        if save_path is None or len(systems) == 0:
             return
-        save_path = os.path.join(save_dir, "traj_stats.json")
-        logger.info(f"Saving trajectory stats to {save_path}")
+
+        system_names = [sys.name for sys in systems]
+        assert set(system_names) == set(ensemble.keys()), "Systems mismatch"
+
+        if ts_ensemble is not None:
+            assert all(
+                (ensemble[sys.name].shape[0], ensemble[sys.name].shape[-1])
+                == (ts_ensemble[sys.name].shape[0], ts_ensemble[sys.name].shape[-1])
+                for sys in systems
+            ), "Ensemble sample count mismatch"
+
+        logger.info(f"Saving trajecotory statistics to {save_path}")
         if os.path.exists(save_path):
             with open(save_path, "r") as f:
                 traj_stats = json.load(f)
@@ -806,22 +966,42 @@ class DynSysSampler(BaseDynSysSampler):
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
             traj_stats = {}
 
-        for sys_name, trajectories in ensemble.items():
-            # NOTE: while we can get ic, mean, and std from system attributes, the latter two are only computed if standardize=True
-            if sys_name not in traj_stats:
-                traj_stats[sys_name] = {"ic": [], "mean": [], "std": [], "mean_amp": []}
+        for sys in systems:
+            trajectories = ensemble[sys.name]
+            if sys.name not in traj_stats:
+                traj_stats[sys.name] = []
 
-            init_conds, means, stds, mean_amps = [], [], [], []
-            for _, traj in enumerate(trajectories):
+            init_conds, means, stds, mean_amps, flow_rms = [], [], [], [], []
+
+            for traj in trajectories:
                 init_conds.append(traj[:, 0].tolist())
                 means.append(traj.mean(axis=1).tolist())
                 stds.append(traj.std(axis=1).tolist())
                 mean_amps.append(np.mean(np.abs(traj), axis=1).tolist())
 
-            traj_stats[sys_name]["ic"].extend(init_conds)
-            traj_stats[sys_name]["mean"].extend(means)
-            traj_stats[sys_name]["std"].extend(stds)
-            traj_stats[sys_name]["mean_amp"].extend(mean_amps)
+            flow_rms = None
+            if ts_ensemble is not None:
+                flow_rms = [
+                    np.sqrt(
+                        np.mean(
+                            [np.asarray(sys(x, t)) ** 2 for x, t in zip(traj.T, ts)],  # type: ignore
+                            axis=0,
+                        )
+                    ).tolist()
+                    for traj, ts in zip(trajectories, ts_ensemble[sys.name])
+                ]
+
+            unwrap = lambda v: v[0] if isinstance(v, list) and len(v) == 1 else v
+            traj_stats_entry = {
+                "sample_idx": sample_idx,
+                "ic": unwrap(init_conds),
+                "mean": unwrap(means),
+                "std": unwrap(stds),
+                "mean_amp": unwrap(mean_amps),
+                "flow_rms": unwrap(flow_rms),
+            }
+
+            traj_stats[sys.name].append(traj_stats_entry)
 
         with open(save_path, "w") as f:
             json.dump(traj_stats, f, indent=4)
@@ -1003,6 +1183,7 @@ class DynSysSamplerRestartIC(DynSysSampler):
                 use_multiprocessing=use_multiprocessing,
                 silent_errors=silent_errors,
                 multiprocess_kwargs=self.multiprocess_kwargs,
+                return_times=False,
                 **kwargs,
             )
 
@@ -1047,7 +1228,9 @@ class DynSysSamplerRestartIC(DynSysSampler):
                         int(self.validator_transient_frac * self.num_points) :
                     ]
                     ic_cache[sys.name] = self.rng.choice(
-                        curr_traj, size=(self.num_ics - 1), replace=False
+                        curr_traj,  # type: ignore
+                        size=(self.num_ics - 1),
+                        replace=False,
                     )
 
             # Set next IC for each system
