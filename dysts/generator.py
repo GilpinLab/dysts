@@ -236,8 +236,8 @@ class DynSysSampler(BaseDynSysSampler):
         self.failed_integrations = defaultdict(list)
         self.rng = np.random.default_rng(self.rseed)
         if self.param_sampler is None:
-            assert self.num_param_perturbations == 1, (
-                "No parameter sampler provided, but num_param_perturbations > 1"
+            assert self.num_param_perturbations == 0, (
+                "No parameter sampler provided, but num_param_perturbations > 0"
             )
         if self.ic_sampler is None:
             assert self.num_ics == 1, (
