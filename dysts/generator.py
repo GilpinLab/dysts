@@ -829,7 +829,7 @@ class DynSysSampler(BaseDynSysSampler):
                 if save_driver_coords_option == "separate" and driver_dyst_dir:
                     process_trajs(driver_dyst_dir, driver_ensemble, **save_kwargs)
                 elif save_driver_coords_option == "combined":
-                    combined = combine_ensembles(ensemble, driver_ensemble, axis=1)
+                    combined = combine_ensembles(driver_ensemble, ensemble, axis=1)
                     process_trajs(save_dyst_dir, combined, **save_kwargs)
                 else:
                     raise ValueError(
@@ -843,7 +843,7 @@ class DynSysSampler(BaseDynSysSampler):
             # save the failed (driver + response) ensemble if skew system
             if failed_driver_ensemble:
                 combined = combine_ensembles(
-                    failed_ensemble, failed_driver_ensemble, axis=1
+                    failed_driver_ensemble, failed_ensemble, axis=1
                 )
                 process_trajs(failed_dyst_dir, combined, **save_kwargs)
 
@@ -888,7 +888,7 @@ class DynSysSampler(BaseDynSysSampler):
                             save_integration_timepoints_dir, ts_ensemble, **save_kwargs
                         )
                 if driver_ensemble is not None:
-                    combined = combine_ensembles(ensemble, driver_ensemble, axis=1)
+                    combined = combine_ensembles(driver_ensemble, ensemble, axis=1)
                 else:
                     combined = ensemble
 
