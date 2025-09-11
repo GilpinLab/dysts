@@ -444,14 +444,14 @@ def spearman(y_true, y_pred):
     var_pred = np.var(y_pred, axis=0) if y_pred.ndim > 1 else np.var(y_pred)
 
     if y_true.ndim == 1:
-        if var_true == 0 or var_pred == 0:
+        if np.isclose(var_true, 0) or np.isclose(var_pred, 0):
             return 0.0
         return spearmanr(y_true, y_pred)[0]
 
     else:
         all_vals = []
         for i in range(y_true.shape[1]):
-            if var_true[i] == 0 or var_pred[i] == 0:
+            if np.isclose(var_true[i], 0) or np.isclose(var_pred[i], 0):
                 all_vals.append(0.0)
             else:
                 all_vals.append(spearmanr(y_true[:, i], y_pred[:, i])[0])
@@ -478,14 +478,14 @@ def pearson(y_true, y_pred):
     var_pred = np.var(y_pred, axis=0) if y_pred.ndim > 1 else np.var(y_pred)
 
     if y_true.ndim == 1:
-        if var_true == 0 or var_pred == 0:
+        if np.isclose(var_true, 0) or np.isclose(var_pred, 0):
             return 0.0
         return pearsonr(y_true, y_pred)[0]
 
     else:
         all_vals = []
         for i in range(y_true.shape[1]):
-            if var_true[i] == 0 or var_pred[i] == 0:
+            if np.isclose(var_true[i], 0) or np.isclose(var_pred[i], 0):
                 all_vals.append(0.0)
             else:
                 all_vals.append(pearsonr(y_true[:, i], y_pred[:, i])[0])
@@ -512,14 +512,14 @@ def kendall(y_true, y_pred):
     var_pred = np.var(y_pred, axis=0) if y_pred.ndim > 1 else np.var(y_pred)
 
     if y_true.ndim == 1:
-        if var_true == 0 or var_pred == 0:
+        if np.isclose(var_true, 0) or np.isclose(var_pred, 0):
             return 0.0
         return kendalltau(y_true, y_pred)[0]
 
     else:
         all_vals = []
         for i in range(y_true.shape[1]):
-            if var_true[i] == 0 or var_pred[i] == 0:
+            if np.isclose(var_true[i], 0) or np.isclose(var_pred[i], 0):
                 all_vals.append(0.0)
             else:
                 all_vals.append(kendalltau(y_true[:, i], y_pred[:, i])[0])
