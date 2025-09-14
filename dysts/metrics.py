@@ -231,6 +231,40 @@ def wape(y_true, y_pred, eps=1e-10):
     return 100 * np.sum(np.abs(y_true - y_pred)) / (np.sum(np.abs(y_true)) + eps)
 
 
+def wql(
+    y_true: np.ndarray, y_pred: np.ndarray, quantile: float = 0.5, eps: float = 1e-10
+) -> float:
+    """
+    Weighted quantile loss (pinball loss)
+
+    The loss is asymmetric - it penalizes over/under-prediction differently based on the quantile level.
+
+    Args:
+        y_true (np.ndarray): Actual observed values (ground truth), shape (N,) or (N, D)
+        y_pred (np.ndarray): Predicted quantile values for the specified quantile level, shape (N,) or (N, D)
+        quantile (float): Quantile level being predicted (0 < quantile < 1).
+                         0.5 = median, 0.9 = 90th percentile, 0.1 = 10th percentile
+        eps (float): Small value to avoid division by zero
+
+    Returns:
+        float: The quantile loss, normalized by sum of absolute true values
+
+    Examples:
+        >>> y_true = np.array([100, 120, 110])  # Actual sales
+        >>> y_pred = np.array([95, 125, 105])   # Predicted 50th percentile sales
+        >>> loss = wql(y_true, y_pred, quantile=0.5)  # Evaluate median predictions
+    """
+    if not (0 < quantile < 1):
+        raise ValueError("quantile must be between 0 and 1")
+
+    error = y_true - y_pred
+    quantile_loss = np.maximum(quantile * error, (quantile - 1) * error)
+    total_loss = np.sum(quantile_loss)
+    normalization = np.sum(np.abs(y_true)) + eps
+
+    return total_loss / normalization
+
+
 def mse(y_true, y_pred):
     """
     Mean Squared Error

@@ -23,6 +23,7 @@ from dysts.metrics import (
     rmsle,
     smape,
     spearman,
+    wql,
 )
 
 WORKING_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -83,6 +84,13 @@ class TestMetrics(unittest.TestCase):
     def test_pearson(self):
         result = pearson(self.y_true, self.y_pred)
         self.assertAlmostEqual(result, 0.9999, places=2)  # type: ignore
+
+    def test_wql(self):
+        loss_over = wql(self.y_true, self.y_true + 1, quantile=0.5)
+        loss_under = wql(self.y_true, self.y_true - 1, quantile=0.5)
+        self.assertGreater(loss_over, 0)
+        self.assertGreater(loss_under, 0)
+        self.assertAlmostEqual(loss_over, loss_under, places=10)
 
 
 class TestEstimateKLDivergence(unittest.TestCase):
