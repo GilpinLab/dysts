@@ -496,17 +496,18 @@ class DynSysSampler(BaseDynSysSampler):
                 num_periods=num_periods,  # NOTE: add other metadata eventually, as kwargs
             )
 
-        logger.info("Generating perturbed ensembles...")
+        if self.num_param_perturbations > 0 and self.param_sampler is not None:
+            logger.info("Generating perturbed ensembles...")
 
-        self._generate_ensembles(
-            systems,
-            postprocessing_callbacks=callbacks,
-            standardize=standardize,
-            use_multiprocessing=use_multiprocessing,
-            silent_errors=silent_errors,
-            return_times=return_times,
-            **kwargs,
-        )
+            self._generate_ensembles(
+                systems,
+                postprocessing_callbacks=callbacks,
+                standardize=standardize,
+                use_multiprocessing=use_multiprocessing,
+                silent_errors=silent_errors,
+                return_times=return_times,
+                **kwargs,
+            )
 
     def _generate_ensembles(
         self,
