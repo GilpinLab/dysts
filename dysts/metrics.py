@@ -802,6 +802,10 @@ def average_hellinger_distance(
 
     Returns:
         avg_dh: Average Hellinger distance across all dimensions.
+
+    References:
+        Mikhaeil et al. Advances in Neural Information Processing Systems, 35:
+            11297–11312, December 2022.
     """
     ts_true = np.asarray(ts_true)
     ts_gen = np.asarray(ts_gen)
