@@ -802,40 +802,34 @@ def average_hellinger_distance(
 
     Returns:
         avg_dh: Average Hellinger distance across all dimensions.
-
-    References:
-        Mikhaeil et al. Advances in Neural Information Processing Systems, 35:
-            11297–11312, December 2022.
     """
+    ts_true = np.asarray(ts_true)
+    ts_gen = np.asarray(ts_gen)
     d = ts_true.shape[1]
-    all_dh = list()
+    hellinger_vals = []
 
     for i in range(d):
-        f_true = np.abs(np.fft.fft(ts_true[:, i])) ** 2
-        f_gen = np.abs(np.fft.fft(ts_gen[:, i])) ** 2
+        f_true = np.abs(np.fft.fft(ts_true[:, i]))[:num_freq_bins] ** 2
+        f_gen = np.abs(np.fft.fft(ts_gen[:, i]))[:num_freq_bins] ** 2
 
-        # Safe division with epsilon to prevent division by zero
-        sum_true = np.sum(f_true[:num_freq_bins])
-        sum_gen = np.sum(f_gen[:num_freq_bins])
+        f_true_sum = np.sum(f_true)
+        f_gen_sum = np.sum(f_gen)
 
-        if sum_true > eps:
-            f_true[:num_freq_bins] /= sum_true
+        # Normalize safely, fallback to uniform if sum is too small
+        if f_true_sum > eps:
+            f_true /= f_true_sum
         else:
-            f_true[:num_freq_bins] = (
-                np.ones_like(f_true[:num_freq_bins]) / num_freq_bins
-            )
+            f_true = np.full_like(f_true, 1.0 / num_freq_bins)
 
-        if sum_gen > eps:
-            f_gen[:num_freq_bins] /= sum_gen
+        if f_gen_sum > eps:
+            f_gen /= f_gen_sum
         else:
-            f_gen[:num_freq_bins] = np.ones_like(f_gen[:num_freq_bins]) / num_freq_bins
+            f_gen = np.full_like(f_gen, 1.0 / num_freq_bins)
 
-        all_dh.append(hellinger_distance(f_true[:num_freq_bins], f_gen[:num_freq_bins]))
-    all_dh = np.array(all_dh)
+        # Call the hellinger_distance function (which expects normalized input)
+        hellinger_vals.append(hellinger_distance(f_true, f_gen))
 
-    avg_dh = np.mean(all_dh)
-
-    return float(avg_dh)
+    return float(np.mean(hellinger_vals))
 
 
 def compute_metrics(
