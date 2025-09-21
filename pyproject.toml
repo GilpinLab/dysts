@@ -18,17 +18,15 @@ dependencies = [
     "matplotlib",
     "scipy",
     "scikit-learn",
-    "tqdm",
-    "gluonts[arrow]",
-    "statsmodels",
-    "wandb"
+    "tqdm"
 ]
 
 # Optional dependencies
 [project.optional-dependencies]
 benchmarks = ["darts", "torch", "pandas"]
 numba = ["numba"]
-extra = ["sdeint", "hnswlib"]
+extra = ["sdeint", "hnswlib", "statsmodels"]
+data = ["gluonts[arrow]", "wandb"]
 
 # Package data
 [tool.setuptools.packages.find]
