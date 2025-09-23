@@ -3,7 +3,13 @@
 
 Analyze hundreds of chaotic systems.
 
-![Plots of chaotic systems in the collection](dysts/data/logo.png)
+![Plots of chaotic systems in the collection](assets/logo.png)
+
+## Installation
+
+    pip install dysts
+
+See the [additional installation guide](#additional-installation-guide) for more options.
 
 ## Basic Usage
 
@@ -12,17 +18,13 @@ Import a model and run a simulation with default initial conditions and paramete
 from dysts.flows import Lorenz
 
 model = Lorenz()
-sol = model.make_trajectory(1000)
-# plt.plot(sol[:, 0], sol[:, 1])
+sol = model.make_trajectory(1000)  # (1000, 3)
 ```
 
 Modify a model's parameter values and re-integrate
 ```python
-model = Lorenz()
-model.gamma = 1
-model.ic = [0.1, 0.0, 5]
-sol = model.make_trajectory(1000)
-# plt.plot(sol[:, 0], sol[:, 1])
+model = Lorenz(parameters={"beta": 0.7, "rho": 3, "signma": 0.1}, ic=[0.1, 0.0, 5])
+sol = model.make_trajectory(1000)  # (1000, 3)
 ```
 
 Integrate new trajectories from all 135 chaotic systems with a custom granularity
@@ -53,13 +55,6 @@ For more information, or if using this code for published work, please consider 
 
 We are very grateful for any suggestions or contributions. See [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
-## Installation
-
-Install from PyPI
-
-    pip install dysts
-
-See the [additional installation guide](#additional-installation-guide) for more options.
 
 
 ## Benchmarks

@@ -25,6 +25,7 @@ from dysts.metrics import (
     spearman,
     wql,
 )
+from dysts.utils import has_module
 
 WORKING_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(1, os.path.join(WORKING_DIR, "dysts"))
@@ -128,6 +129,7 @@ class TestEstimateKLDivergence(unittest.TestCase):
         )
         self.assertIsInstance(kl_div, float)
 
+    @unittest.skipIf(not has_module("sklearn"), "sklearn is required for this test")
     def test_kl_divergence_auto_sigma_scale(self):
         # Test if the function works with none sigma_scale
         kl_div = estimate_kl_divergence(
@@ -135,6 +137,7 @@ class TestEstimateKLDivergence(unittest.TestCase):
         )
         self.assertIsInstance(kl_div, float)
 
+    @unittest.skipIf(not has_module("sklearn"), "sklearn is required for this test")
     def test_compute_metrics_batched_kl_divergence(self):
         # Test if the function works with a batched dimension
         y_true = np.random.randn(10, 100, 2)

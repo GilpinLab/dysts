@@ -318,9 +318,10 @@ class DynSys(BaseDyn):
         Raises:
             ValueError: If an invalid timescale is provided.
         """
-        assert isinstance(init_cond, (None, np.array)), (
-            "initial condition must be a numpy array or None"
-        )
+        if init_cond is not None:
+            assert isinstance(init_cond, np.array), (
+                "initial condition must be a numpy array or None"
+            )
         np.random.seed(random_seed)
 
         # set timescales and interpolation points for the solution
@@ -346,7 +347,7 @@ class DynSys(BaseDyn):
             raise ValueError(
                 "No initial conditions provided and no default initial conditions available for this system."
             )
-        ics = init_cond if init_cond is not None else self.ic
+        ics = np.array(init_cond if init_cond is not None else self.ic)
         ics = np.expand_dims(ics, axis=0) if ics.ndim < 2 else ics
 
         mu = self.mean if standardize else np.zeros_like(ics[0])

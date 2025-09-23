@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["uv-build"]
+build-backend = "uv_build"
 
 [project]
 name = "dysts"
@@ -13,23 +13,21 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = [
-    "numpy",
-    "matplotlib",
-    "scipy",
-    "scikit-learn",
-    "tqdm"
-]
+dependencies = ["numpy", "scipy", "tqdm"]
 
 # Optional dependencies
 [project.optional-dependencies]
 benchmarks = ["darts", "torch", "pandas"]
 numba = ["numba"]
-extra = ["sdeint", "hnswlib", "statsmodels"]
-data = ["gluonts[arrow]", "wandb"]
+extra = ["sdeint", "hnswlib", "statsmodels", "scikit-learn"]
 
-# Package data
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["dysts*"]
-exclude = ["tests*", "scripts*", "docs*", "notebooks*"]
+[dependency-groups]
+dev = ["ruff", "ipykernel", "matplotlib"]
+
+[tool.uv.build-backend]
+module-name = "dysts"
+module-root = ""
+
+[tool.uv]
+package = true
+python-preference = "managed"
