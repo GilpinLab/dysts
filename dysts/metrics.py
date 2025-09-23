@@ -92,16 +92,22 @@ def find_sigma(dists, tol=1e-6):
     """
     k = dists.shape[0]
     rho = np.min(dists)
-    func = lambda sig: sum(np.exp(-relu(dists - rho) / (sig + tol))) - np.log2(k)
-    jac = (
-        lambda sig: sum(np.exp(-relu(dists - rho) / (sig + tol)) * relu(dists - rho))
-        / (sig + tol) ** 2
-    )
-    sigma = fsolve(func, rho, fprime=jac, xtol=tol)[0]
-    # func = lambda isig: sum(np.exp(-relu(dists - rho) * isig)) - np.log2(k)
-    # jac = lambda isig: -sum(np.exp(-relu(dists - rho) * isig) * relu(dists - rho))
-    # isigma = fsolve(func, 1/rho, fprime=jac, xtol=tol)[0]
-    # sigma = 1 / isigma
+
+    def func_log(log_sig: float) -> float:
+        sig = np.exp(log_sig)
+        error = sum(np.exp(-relu(dists - rho) / (sig + tol))) - np.log2(k)
+        return 0.5 * error**2
+
+    def jac_log(log_sig: float) -> float:
+        sig = np.exp(log_sig)
+        relu_dist = relu(dists - rho)
+        model = sum(np.exp(-relu_dist / (sig + tol)))
+        error = model - np.log2(k)
+        deriv = sum(np.exp(-relu_dist / (sig + tol)) * relu_dist) / (sig + tol) ** 2
+        return error * deriv * sig
+
+    log_sigma = fsolve(func_log, rho, fprime=jac_log, xtol=tol)[0]
+    sigma = np.exp(log_sigma)
     dists_transformed = np.exp(-relu(dists - rho) / (sigma + tol))
     return sigma, dists_transformed
 
@@ -734,12 +740,6 @@ def estimate_kl_divergence(
         generated_orbit = generated_orbit.reshape(-1, 1)
 
     if sigma_scale is None:
-        #     scales = np.linalg.norm(np.diff(true_orbit, axis=0), axis=1) + 1e-8
-        #     stacked_scales = np.hstack((scales, scales[-1]))
-        #     p_hat = GaussianMixture(true_orbit, stacked_scales)
-        #     scales = np.linalg.norm(np.diff(generated_orbit, axis=0), axis=1) + 1e-8
-        #     stacked_scales = np.hstack((scales, scales[-1]))
-        #     q_hat = GaussianMixture(generated_orbit, stacked_scales)
         _, _, sig_true = simplex_neighbors(
             true_orbit, metric="euclidean", k=10, tol=1e-6
         )
@@ -752,14 +752,9 @@ def estimate_kl_divergence(
         p_hat = GaussianMixture(true_orbit, sigma_scale)
         q_hat = GaussianMixture(generated_orbit, sigma_scale)
 
-    # Sample directly n_samples points from p_hat
     samples = p_hat.sample(n_samples=n_samples)
-
-    # Safe division to prevent division by zero or very small values
     p_vals = p_hat(samples)
     q_vals = q_hat(samples)
-
-    # Add epsilon to q_vals to prevent division by zero
     q_vals = np.maximum(q_vals, eps)
 
     log_ratios = np.log(p_vals / q_vals)
