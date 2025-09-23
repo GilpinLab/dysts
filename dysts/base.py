@@ -16,10 +16,12 @@ from .coupling import RandomAdditiveCouplingMap
 from .utils import cast_to_numpy, ddeint, has_module, integrate_dyn, standardize_ts
 
 logger = logging.getLogger(__name__)
+
 if has_module("numba"):
+    logger.info("[numba] JIT compilation enabled")
     from numba import njit
+
 else:
-    warnings.warn("Numba not installed. Falling back to no JIT compilation.")
 
     def njit(func):
         return func
@@ -111,6 +113,7 @@ class BaseDyn:
             self.ic = cast_to_numpy(
                 self.metadata.pop("initial_conditions"), singleton_scalar=True
             )
+        self.ic = np.array(self.ic)  # safety
 
         if "dimension" in self.metadata:
             self.dimension = self.metadata.pop("dimension")
@@ -315,6 +318,9 @@ class DynSys(BaseDyn):
         Raises:
             ValueError: If an invalid timescale is provided.
         """
+        assert isinstance(init_cond, (None, np.array)), (
+            "initial condition must be a numpy array or None"
+        )
         np.random.seed(random_seed)
 
         # set timescales and interpolation points for the solution
