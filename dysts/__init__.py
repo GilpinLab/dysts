@@ -8,39 +8,30 @@ This package provides implementations of various dynamical systems including:
 - Coupling and analysis utilities
 """
 
-from . import (
-    analysis,
-    attractor,
-    base,
-    coupling,
-    flows,
-    generator,
-    maps,
-    metrics,
-    sampling,
-    systems,
-    utils,
-)
-from .base import BaseDyn, DynMap, DynSys, DynSysDelay
-from .systems import get_attractor_list, get_system_data
-
-__version__ = "0.95"
-__all__ = [
-    "utils",
-    "systems",
+_MODULE_NAMES = {
+    "analysis",
+    "base",
+    "coupling",
     "flows",
     "maps",
-    "base",
-    "attractor",
-    "coupling",
-    "generator",
     "metrics",
     "sampling",
-    "analysis",
-    "DynSys",
-    "DynSysDelay",
-    "DynMap",
-    "BaseDyn",
-    "get_attractor_list",
-    "get_system_data",
-]
+    "systems",
+    "utils",
+}
+
+__all__ = list(_MODULE_NAMES)
+
+
+def __getattr__(name: str):
+    """Lazy load modules to avoid importing all dependencies at module level."""
+    if name in _MODULE_NAMES:
+        full_module_path = f"dysts.{name}"
+        module = __import__(full_module_path, fromlist=[name])
+        return module
+
+    raise AttributeError(f"module 'dysts' has no attribute '{name}'")
+
+
+def __dir__():
+    return sorted(_MODULE_NAMES)
