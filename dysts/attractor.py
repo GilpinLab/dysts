@@ -3,7 +3,6 @@ Suite of tests to determine if generated trajectories are valid attractors
 """
 
 import functools
-import warnings
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from multiprocessing import Pool
@@ -13,10 +12,14 @@ import numpy as np
 from scipy.fft import rfft
 from scipy.signal import find_peaks
 from scipy.spatial.distance import cdist
-from statsmodels.tsa.stattools import adfuller, kpss
+
+from dysts.utils.native_utils import has_module
 
 from .analysis import max_lyapunov_exponent_rosenstein, run_zero_one_sweep
 from .utils import safe_standardize
+
+if has_module("statsmodels"):
+    from statsmodels.tsa.stattools import adfuller, kpss
 
 
 @dataclass
@@ -558,23 +561,22 @@ def check_stationarity(traj: np.ndarray, p_value: float = 0.05) -> bool:
     Returns:
         bool: True if the trajectory is stationary, False otherwise.
     """
-    with warnings.catch_warnings():  # kpss test is annoyingly verbose
-        warnings.filterwarnings("ignore", "The test statistic is outside of the range")
+    if not has_module("statsmodels"):
+        raise ImportError("statsmodels is required for stationarity check")
+    for d in range(traj.shape[0]):
+        coord = traj[d, :]
 
-        for d in range(traj.shape[0]):
-            coord = traj[d, :]
+        try:
+            result_adf = adfuller(coord, autolag="AIC")
+            result_kpss = kpss(coord, regression="c")
+        except ValueError:  # probably due to constant values
+            return False
 
-            try:
-                result_adf = adfuller(coord, autolag="AIC")
-                result_kpss = kpss(coord, regression="c")
-            except ValueError:  # probably due to constant values
-                return False
+        status_adf = result_adf[1] < p_value
+        status_kpss = result_kpss[1] >= p_value
 
-            status_adf = result_adf[1] < p_value
-            status_kpss = result_kpss[1] >= p_value
-
-            if not status_adf and not status_kpss:
-                return False
+        if not status_adf and not status_kpss:
+            return False
 
     return True
 
