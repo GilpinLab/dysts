@@ -6,6 +6,7 @@
 !docs/**
 !dysts/**
 !tests/**
+!assets/**
 
 # Whitelist specific files
 !.gitattributes
