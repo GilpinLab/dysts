@@ -2,6 +2,15 @@
 
 Thank you very much for any contributions or suggestions! For recommendations of systems to add, please see the following instructions. For other contributions, please see the list below. 
 
+## Development
+
+We highly recommend using [uv](https://docs.astral.sh/uv/getting-started/installation/) for managing dependencies.
+To get started, clone the repo and setup the dependencies and package:
+```
+uv sync --group dev
+uv pip install -e .
+```
+
 ## New dynamical systems
 
 If you would like a new chaotic system added to the database, please mention it on the issue thread [here](https://github.com/williamgilpin/dysts/issues/1). Because there are an infinite number of chaotic systems, we currently are only including systems that have appeared in published work.
