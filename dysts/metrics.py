@@ -764,7 +764,7 @@ def estimate_kl_divergence(
 
 
 def _calc_histogram(
-    x: np.ndarray, n_bins: int, min_: np.ndarray, max_: np.ndarray
+    x: np.ndarray, n_bins: int, min_: np.ndarray, max_: np.ndarray, eps: float = 1e-12
 ) -> np.ndarray:
     """
     Compute histogram of data points in a hypercube.
@@ -774,12 +774,13 @@ def _calc_histogram(
         n_bins: Number of bins per dimension
         min_: Minimum values per dimension, shape (num_channels,)
         max_: Maximum values per dimension, shape (num_channels,)
+        eps: Small value to prevent division by zero when max_ == min_. Default is 1e-12.
 
     Returns:
         Histogram array of shape (n_bins, n_bins, ...) with num_channels dimensions
     """
     dim_x = x.shape[1]
-    coordinates = (n_bins * (x - min_) / (max_ - min_)).astype(int)
+    coordinates = (n_bins * (x - min_) / (max_ - min_ + eps)).astype(int)
 
     coord_bigger_zero = np.all(coordinates >= 0, axis=1)
     coord_smaller_nbins = np.all(coordinates < n_bins, axis=1)
@@ -800,7 +801,7 @@ def _calc_histogram(
 
 def _normalize_to_pdf_with_laplace_smoothing(
     histogram: np.ndarray, n_bins: int, smoothing_alpha: float = 1e-6
-) -> np.ndarray | None:
+) -> np.ndarray:
     """
     Normalize histogram to probability density function with Laplace smoothing.
 
@@ -810,10 +811,8 @@ def _normalize_to_pdf_with_laplace_smoothing(
         smoothing_alpha: Smoothing parameter for Laplace smoothing
 
     Returns:
-        Normalized PDF array or None if histogram is empty
+        Normalized PDF array
     """
-    if histogram.sum() == 0:
-        return None
     dim_x = len(histogram.shape)
     pdf = (histogram + smoothing_alpha) / (
         histogram.sum() + smoothing_alpha * n_bins**dim_x
@@ -830,7 +829,7 @@ def _kullback_leibler_divergence(p1: np.ndarray, p2: np.ndarray) -> float:
         p2: Second probability distribution
 
     Returns:
-        KL divergence value or NaN if either distribution is None
+        KL divergence value
     """
     p1_safe = np.maximum(p1, 1e-10)
     p2_safe = np.maximum(p2, 1e-10)
