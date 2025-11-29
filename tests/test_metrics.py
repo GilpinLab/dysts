@@ -13,6 +13,7 @@ from dysts.metrics import (
     coefficient_of_variation,
     compute_metrics,
     estimate_kl_divergence,
+    geometrical_misalignment,
     mae,
     mape,
     marre,
@@ -146,6 +147,30 @@ class TestEstimateKLDivergence(unittest.TestCase):
             y_true, y_pred, include=["kl_divergence"], batch_axis=0
         )
         self.assertEqual(set(metrics.keys()), set(["kl_divergence"]))
+
+
+class TestGeometricalMisalignment(unittest.TestCase):
+    def setUp(self):
+        self.y_true = np.random.randn(200, 3)
+        self.y_pred = np.random.randn(200, 3)
+
+    def test_geometrical_misalignment_returns_float(self):
+        kl = geometrical_misalignment(self.y_true, self.y_pred)
+        self.assertIsInstance(kl, float)
+
+    def test_geometrical_misalignment_1d(self):
+        y_true_1d = np.random.randn(200)
+        y_pred_1d = np.random.randn(200)
+        kl = geometrical_misalignment(y_true_1d, y_pred_1d)
+        self.assertIsInstance(kl, float)
+
+    def test_geometrical_misalignment_same_trajectory(self):
+        kl = geometrical_misalignment(self.y_true, self.y_true)
+        self.assertLess(kl, 0.1)
+
+    def test_geometrical_misalignment_different_trajectories(self):
+        kl = geometrical_misalignment(self.y_true, self.y_pred)
+        self.assertGreater(kl, 0)
 
 
 class TestComputeMetrics(unittest.TestCase):
