@@ -883,12 +883,13 @@ def geometrical_misalignment(
     for i in range(num_channels):
         min_ = y_true[:, i : i + 1].min(axis=0)
         max_ = y_true[:, i : i + 1].max(axis=0)
-        y_pred_bounded = np.clip(y_pred[:, i : i + 1], min_ + 0.5, max_ - 0.5)
+        clip_min = min_ + 0.5
+        clip_max = max_ - 0.5
+        y_pred_bounded = np.clip(y_pred[:, i : i + 1], clip_min, clip_max)
+        y_true_bounded = np.clip(y_true[:, i : i + 1], clip_min, clip_max)
 
         hist_gen = _calc_histogram(y_pred_bounded, n_bins=n_bins, min_=min_, max_=max_)
-        hist_true = _calc_histogram(
-            y_true[:, i : i + 1], n_bins=n_bins, min_=min_, max_=max_
-        )
+        hist_true = _calc_histogram(y_true_bounded, n_bins=n_bins, min_=min_, max_=max_)
 
         p_gen = _normalize_to_pdf_with_laplace_smoothing(
             histogram=hist_gen, n_bins=n_bins
