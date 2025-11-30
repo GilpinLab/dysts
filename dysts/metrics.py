@@ -8,6 +8,7 @@ libraries.
 
 import numpy as np
 from scipy.optimize import fsolve
+from scipy.signal import welch
 from scipy.spatial.distance import cdist
 from scipy.stats import (
     kendalltau,
@@ -921,50 +922,38 @@ def hellinger_distance(p, q, axis=0):
 def average_hellinger_distance(
     ts_true: np.ndarray,
     ts_gen: np.ndarray,
-    num_freq_bins: int = 100,
     eps: float = 1e-10,
+    **welch_kwargs,
 ) -> float:
     """
     Compute the average Hellinger distance between power spectra of two multivariate
     time series.
 
     Args:
-        ts_true (np.ndarray): True time series, shape (n_samples, n_dimensions).
-        ts_gen (np.ndarray): Generated time series, shape (n_samples, n_dimensions).
-        num_freq_bins (int): Number of frequency bins to use in FFT for power spectrum.
-        eps (float): Small value to prevent division by zero. Default is 1e-10.
+        ts_true: True time series, shape (num_timepoints, num_channels)
+        ts_gen: Generated time series, shape (num_timepoints, num_channels)
+        eps: Small value to prevent division by zero. Default is 1e-10.
+        **welch_kwargs: Additional keyword arguments passed to scipy.signal.welch for
+            PSD estimation (e.g., nperseg, noverlap, nfft, window, etc.).
 
     Returns:
-        avg_dh: Average Hellinger distance across all dimensions.
+        Average Hellinger distance across all channels.
 
     References:
         Mikhaeil et al. Advances in Neural Information Processing Systems, 35:
             11297–11312, December 2022.
     """
+    assert ts_true.shape == ts_gen.shape
     ts_true = np.asarray(ts_true)
     ts_gen = np.asarray(ts_gen)
     d = ts_true.shape[1]
+
     hellinger_vals = []
-
     for i in range(d):
-        f_true = np.abs(np.fft.fft(ts_true[:, i]))[:num_freq_bins] ** 2
-        f_gen = np.abs(np.fft.fft(ts_gen[:, i]))[:num_freq_bins] ** 2
-
-        f_true_sum = np.sum(f_true)
-        f_gen_sum = np.sum(f_gen)
-
-        # Normalize safely, fallback to uniform if sum is too small
-        if f_true_sum > eps:
-            f_true /= f_true_sum
-        else:
-            f_true = np.full_like(f_true, 1.0 / num_freq_bins)
-
-        if f_gen_sum > eps:
-            f_gen /= f_gen_sum
-        else:
-            f_gen = np.full_like(f_gen, 1.0 / num_freq_bins)
-
-        # Call the hellinger_distance function (which expects normalized input)
+        _, f_true = welch(ts_true[:, i], **welch_kwargs)
+        _, f_gen = welch(ts_gen[:, i], **welch_kwargs)
+        f_true = f_true / (np.sum(f_true) + eps)
+        f_gen = f_gen / (np.sum(f_gen) + eps)
         hellinger_vals.append(hellinger_distance(f_true, f_gen))
 
     return float(np.mean(hellinger_vals))
