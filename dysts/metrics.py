@@ -952,8 +952,24 @@ def average_hellinger_distance(
     for i in range(d):
         _, f_true = welch(ts_true[:, i], **welch_kwargs)
         _, f_gen = welch(ts_gen[:, i], **welch_kwargs)
-        f_true = f_true / (np.sum(f_true) + eps)
-        f_gen = f_gen / (np.sum(f_gen) + eps)
+
+        min_len = min(len(f_true), len(f_gen))
+        f_true = f_true[:min_len]
+        f_gen = f_gen[:min_len]
+
+        f_true_sum = np.sum(f_true)
+        f_gen_sum = np.sum(f_gen)
+
+        if f_true_sum > eps:
+            f_true = f_true / f_true_sum
+        else:
+            f_true = np.ones_like(f_true) / len(f_true)
+
+        if f_gen_sum > eps:
+            f_gen = f_gen / f_gen_sum
+        else:
+            f_gen = np.ones_like(f_gen) / len(f_gen)
+
         hellinger_vals.append(hellinger_distance(f_true, f_gen))
 
     return float(np.mean(hellinger_vals))
