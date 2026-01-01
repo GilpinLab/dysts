@@ -2,6 +2,7 @@
   "Aizawa": {
     "bifurcation_parameter": null,
     "citation": "Aizawa, Yoji, and Tatsuya Uezu (1982). Topological Aspects in Chaos and in 2 k-Period Doubling Cascade. Progress of Theoretical Physics 67.3 (1982): 982-985. See also Langford (1984). Numerical studies of torus bifurcations. Numerical Methods for Bifurcation Problems. Birkhauser, Basel, 1984. 285-295.",
+    "doi": "10.1143/PTP.67.982",
     "correlation_dimension": 1.8926529653780282,
     "delay": false,
     "description": "A torus-like attractor related to the forced Lorenz system.",
@@ -33,6 +34,7 @@
   "AnishchenkoAstakhov": {
     "bifurcation_parameter": null,
     "citation": "Anishchenko, et al. Nonlinear dynamics of chaotic and stochastic systems: tutorial and modern developments. 2007.",
+    "doi": "10.1007/978-3-540-38168-6",
     "correlation_dimension": 1.934087922565906,
     "delay": false,
     "description": "Stochastic resonance in forced oscillators.",
@@ -60,6 +62,7 @@
   "Arneodo": {
     "bifurcation_parameter": null,
     "citation": "Arneodo, A., Coullet, P. & Tresser, C. Occurence of strange attractors in three-dimensional Volterra equations. Physics Letters A 79, 259--263 (1980)",
+    "doi": "10.1016/0375-9601(80)90342-4",
     "correlation_dimension": 1.9333366595280337,
     "delay": false,
     "description": "A modified Lotka-Volterra ecosystem, also known as the ACT attractor.",
@@ -1387,6 +1390,7 @@
   "HastingsPowell": {
     "bifurcation_parameter": null,
     "citation": "Hastings, Powell. Ecology 1991",
+    "doi": "10.2307/1940591",
     "correlation_dimension": 1.0147969186008294,
     "delay": false,
     "description": "A three species food web.",
@@ -1418,6 +1422,7 @@
   "HenonHeiles": {
     "bifurcation_parameter": null,
     "citation": "Henon, M.; Heiles, C. (1964). The applicability of the third integral of motion: Some numerical experiments. The Astronomical Journal. 69: 73.",
+    "doi": "10.1086/109234",
     "correlation_dimension": 1.483374075624846,
     "delay": false,
     "description": "A star's motion around the galactic center.",
@@ -1643,7 +1648,7 @@
   },
   "HyperLorenz": {
     "bifurcation_parameter": null,
-    "citation": "J\u00fcrgen Meier (2003). Presentation of Attractors with Cinema.",
+    "citation": "Jurgen Meier (2003). Presentation of Attractors with Cinema.",
     "correlation_dimension": 2.3256965997358985,
     "delay": false,
     "description": "A hyperchaotic variant of the Lorenz attractor.",
@@ -1682,7 +1687,8 @@
   },
   "HyperLu": {
     "bifurcation_parameter": null,
-    "citation": "Chen, A., Lu, J., L\u00fc, J., & Yu, S. (2006). Generating hyperchaotic L\u00fc attractor via state feedback control. Physica A: Statistical Mechanics and its Applications, 364, 103-110.",
+    "citation": "Chen, A., Lu, J., Lu, J., & Yu, S. (2006). Generating hyperchaotic Lu attractor via state feedback control. Physica A: Statistical Mechanics and its Applications, 364, 103-110.",
+    "doi": "10.1016/j.physa.2005.09.039",
     "correlation_dimension": 2.343735648584751,
     "delay": false,
     "description": "A hyperchaotic variant of the Lu attractor.",
@@ -1717,7 +1723,7 @@
   },
   "HyperPang": {
     "bifurcation_parameter": null,
-    "citation": "Pang, S., & Liu, Y. (2011). A new hyperchaotic system from the L\u00fc system and its control. Journal of Computational and Applied Mathematics, 235(8), 2775-2789.",
+    "citation": "Pang, S., & Liu, Y. (2011). A new hyperchaotic system from the Lu system and its control. Journal of Computational and Applied Mathematics, 235(8), 2775-2789.",
     "correlation_dimension": 2.409444534598458,
     "delay": false,
     "description": "A hyperchaotic system.",
