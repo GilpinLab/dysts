@@ -108,6 +108,7 @@ class BaseDyn:
         self.params = {k: cast_to_numpy(v) for k, v in self.params.items()}
         self.__dict__.update(self.params)
         self.param_list = [self.params[key] for key in sorted(self.params.keys())]
+        self._params_initialized = True
 
         if "initial_conditions" in self.metadata:
             self.ic = cast_to_numpy(
@@ -131,6 +132,18 @@ class BaseDyn:
         elif hasattr(self, "ic"):
             self.mean = np.asarray(getattr(self, "mean", np.zeros_like(self.ic)))
             self.std = np.asarray(getattr(self, "std", np.ones_like(self.ic)))
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if (
+            getattr(self, "_params_initialized", False)
+            and name in self.params
+        ):
+            self.params[name] = value
+            super().__setattr__(
+                "param_list",
+                [self.params[k] for k in sorted(self.params)],
+            )
 
     @staticmethod
     def load_system_metadata(system_name: str, data_path: str) -> dict[str, Any]:
