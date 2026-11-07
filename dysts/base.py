@@ -204,8 +204,9 @@ class BaseDyn:
 
     def has_jacobian(self) -> bool:
         """Check if the subclass has implemented the _jac method."""
-        # NOTE: the first comparison doesn't actually work
-        return self._jac is not BaseDyn._jac and self._jac.__dict__ != {}
+        # Compare at the class level so that this works both with numba (where _jac
+        # is a compiled dispatcher) and without it (where _jac is a plain function).
+        return type(self)._jac is not BaseDyn._jac
 
     def transform_ic(
         self, transform_fn: Callable[[np.ndarray, Any], np.ndarray | None]

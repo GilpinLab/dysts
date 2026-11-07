@@ -83,6 +83,24 @@ We list parameters and arguments by name (instead of using keyword arguments) in
         
 Feel free to copy and paste and then fill out the fields that you know; we have utilities for recalculating `dt`, `initial_conditions`, `kaplan_yorke_dimension`, `lyapunov_spectrum_estimated`, `maximum_lyapunov_estimated`, `multiscale_entropy`, `period`, `pesin_entropy`, but an initial guess will improve these estimates
 
+**3. Computing the entry.** Once the right-hand side is in `dysts/flows.py`, every numerical field above can be computed and written to the database in a single call:
+
+    from dysts.flows import Liu
+    from dysts.pipeline import add_system
+
+    entry, report = add_system(
+        Liu,
+        parameters={"a": 10, "b": 40, "c": 2.5, "h": 4, "k": 1},
+        initial_conditions=[0.5, 0.5, 20.0],
+        citation="Liu, C., et al. (2004). A new chaotic attractor. Chaos, Solitons & Fractals 22, 1031-1038.",
+        description="A Lorenz-like butterfly attractor.",
+        doi="10.1016/j.chaos.2004.02.060",
+        nonautonomous=False,
+        plot_path="Liu.png",   # optional: attractor + first coordinate overlaid on Rossler
+    )
+
+The pipeline (i) finds an integration timestep and dominant period, (ii) rescales the period so that the first coordinate oscillates at the same rate as the Rossler system when both are resampled at 100 points per period, (iii) settles onto the attractor and detects unbounded variables, (iv) estimates the Lyapunov spectrum by a QR method over an ensemble of initial conditions along with the Kaplan-Yorke dimension, Pesin entropy, correlation dimension and multiscale entropy, and (v) independently estimates the largest Lyapunov exponent from the divergence of nearby trajectories. `report["flags"]` lists inconsistencies between these estimates (for example, QR and direct Lyapunov exponents that disagree by more than a factor of two). Pass `write=False` to inspect the entry before it is written. The multiscale entropy requires the optional dependency `neurokit2`, and the ensemble steps are much faster when `numba` is installed.
+
 ## Development to-do list
 
 A partial list of potential improvements in future versions. We very much appreciate any help or suggestsions for these tasks.

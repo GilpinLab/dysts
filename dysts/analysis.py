@@ -65,6 +65,7 @@ def sample_initial_conditions(
     points_to_sample: int,
     traj_length: int = 1000,
     pts_per_period: int = 30,
+    **kwargs,
 ) -> np.ndarray:
     """
     Generate a random sample of initial conditions from a dynamical system
@@ -74,13 +75,19 @@ def sample_initial_conditions(
         points_to_sample (int): the number of random initial conditions to sample
         traj_length (int): the total length of the reference trajectory from which points are drawn
         pts_per_period (int): the sampling density of the trajectory
+        kwargs: additional keyword arguments (e.g. integrator settings) passed to the
+            model's make_trajectory method
 
     Returns:
         sample_points (ndarray): The points with shape (points_to_sample, d)
 
     """
     initial_sol = model.make_trajectory(
-        traj_length, resample=True, pts_per_period=pts_per_period, postprocess=False
+        traj_length,
+        resample=True,
+        pts_per_period=pts_per_period,
+        postprocess=False,
+        **kwargs,
     )
     sample_inds = np.random.choice(
         np.arange(initial_sol.shape[0]), points_to_sample, replace=False
@@ -415,8 +422,9 @@ def find_lyapunov_exponents(
     for i, (t, X) in enumerate(zip(tpts, traj)):
         X = traj[i]
 
-        if model.jac(model.ic, 0) is None:
-            rhsy = lambda x: np.array(model.rhs(x, t))
+        if not model.has_jacobian():
+            # no analytic Jacobian: fall back to finite differences
+            rhsy = lambda x: np.array(model.rhs(x, t))  # noqa: E731
             jacval = jac_fd(rhsy, X)
         else:
             jacval = np.array(model.jac(X, t))
@@ -441,13 +449,9 @@ def find_lyapunov_exponents(
         all_lyap.append(lyap_estimate)
         u = q  # post-iteration update axes
 
-        ## early stopping if middle exponents are close to zero, a requirement for
-        ## continuous-time dynamical systems
-        if (np.min(np.abs(lyap_estimate)) < tol) and (i > min_tpts):
-            traj_length = i
-
     all_lyap = np.array(all_lyap)
-    final_lyap = np.sum(all_lyap, axis=0) / (dt * traj_length)
+    # normalize by the total integrated time of the accumulated steps
+    final_lyap = np.sum(all_lyap, axis=0) / (dt * len(all_lyap))
     return np.sort(final_lyap)[::-1]
 
 
@@ -515,6 +519,7 @@ def max_lyapunov_exponent(
         n_samples,
         traj_length=max(traj_length, n_samples),
         pts_per_period=15,
+        **kwargs,
     )
     pts_per_period = 100
     eps = atol
