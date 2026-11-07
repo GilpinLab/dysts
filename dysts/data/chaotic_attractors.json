@@ -1493,6 +1493,51 @@
     ],
     "doi": "10.1016/b978-1-4832-5676-4.50003-2"
   },
+  "DrivenPendulum": {
+    "bifurcation_parameter": null,
+    "citation": "Baker, G. L., Gollub, J. P. (1996). Chaotic Dynamics: An Introduction, 2nd ed. Cambridge University Press. See also Gwinn, E. G., Westervelt, R. M. (1985). Intermittent chaos and low-frequency noise in the driven damped pendulum. Physical Review Letters 54, 1613.",
+    "doi": "10.1017/CBO9781139170864",
+    "correlation_dimension": 2.331987236239829,
+    "delay": false,
+    "description": "A sinusoidally driven, damped rigid pendulum with the full sine nonlinearity; the canonical textbook chaotic oscillator. The angle variable is unbounded (rotations) and is mapped through a sine.",
+    "dt": 0.0007733626083053883,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      -23.06888093442767,
+      0.3783580206979084,
+      25.778753610179603
+    ],
+    "kaplan_yorke_dimension": 2.2178739019428133,
+    "lyapunov_spectrum_estimated": [
+      0.14099979667381712,
+      0.0,
+      -0.6391636787737769
+    ],
+    "maximum_lyapunov_estimated": 0.11538698618751805,
+    "mean": [
+      0.011099835581948337,
+      -0.025506824069861225,
+      0.0004977670341079831
+    ],
+    "multiscale_entropy": 1.038060606152759,
+    "nonautonomous": true,
+    "parameters": {
+      "g": 1.5,
+      "omega": 0.6666666666666666,
+      "q": 2.0
+    },
+    "period": 3.8668130415269415,
+    "pesin_entropy": 0.14099979667381712,
+    "std": [
+      0.6741944243321089,
+      1.3701082181480284,
+      0.7070875353017622
+    ],
+    "unbounded_indices": [
+      2
+    ]
+  },
   "Duffing": {
     "bifurcation_parameter": "gamma",
     "citation": "Duffing, G. (1918), Forced oscillations with variable natural frequency and their technical relevance, Heft 41/42, Braunschweig: Vieweg.",
@@ -1793,6 +1838,102 @@
       0.7143274622929852
     ]
   },
+  "ForcedRosenzweigMacArthur": {
+    "bifurcation_parameter": null,
+    "citation": "Rinaldi, S., Muratori, S., Kuznetsov, Y. (1993). Multiple attractors, catastrophes and chaos in seasonally perturbed predator-prey communities. Bulletin of Mathematical Biology 55, 15-35.",
+    "doi": "10.1007/BF02460293",
+    "correlation_dimension": 2.05333625021612,
+    "delay": false,
+    "description": "A Rosenzweig-MacArthur predator-prey model whose prey carrying capacity varies sinusoidally with the season.",
+    "dt": 0.0003230498346920251,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      0.6475664197696828,
+      0.2071101295333338,
+      101.48909874118642
+    ],
+    "kaplan_yorke_dimension": 2.310239079979805,
+    "lyapunov_spectrum_estimated": [
+      0.3278024707481243,
+      0.0,
+      -1.0611154294860607
+    ],
+    "maximum_lyapunov_estimated": 0.2927494961472565,
+    "mean": [
+      0.4502138674439771,
+      0.1822602916595254,
+      0.00018214318810880553
+    ],
+    "multiscale_entropy": 0.7988619461461658,
+    "nonautonomous": true,
+    "parameters": {
+      "a": 12.566370614359172,
+      "b": 0.3,
+      "d": 6.283185307179586,
+      "e": 1.0,
+      "eps": 0.7,
+      "k0": 1.44,
+      "omega": 6.283185307179586,
+      "r": 6.283185307179586
+    },
+    "period": 1.6152491734601255,
+    "pesin_entropy": 0.3278024707481243,
+    "std": [
+      0.4049994529637856,
+      0.14336613037699,
+      0.7071497708047015
+    ],
+    "unbounded_indices": [
+      2
+    ]
+  },
+  "ForcedToda": {
+    "bifurcation_parameter": null,
+    "citation": "Kurz, T., Lauterborn, W. (1988). Bifurcation structure of the Toda oscillator. Physical Review A 37, 1029-1031.",
+    "doi": "10.1103/PhysRevA.37.1029",
+    "correlation_dimension": 1.920325212614524,
+    "delay": false,
+    "description": "A sinusoidally driven damped particle in a Toda (exponential) potential; a standard model for class-B laser relaxation oscillations and nonlinear diode resonators.",
+    "dt": 0.00023336904349578264,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      -2.7470217419704634,
+      -24.917046022228806,
+      73.31504726216279
+    ],
+    "kaplan_yorke_dimension": 2.2773036238751154,
+    "lyapunov_spectrum_estimated": [
+      0.3303380022354225,
+      0.0,
+      -1.1874236403251763
+    ],
+    "maximum_lyapunov_estimated": 0.3530403579770488,
+    "mean": [
+      -8.695361780485033,
+      -0.07037491814875059,
+      -0.001012953304856509
+    ],
+    "multiscale_entropy": 0.8407336249424573,
+    "nonautonomous": true,
+    "parameters": {
+      "a": 105.0,
+      "alpha": 25.0,
+      "mu": 0.8,
+      "omega": 6.283185307179586
+    },
+    "period": 1.1668452174789132,
+    "pesin_entropy": 0.33033800223542253,
+    "std": [
+      7.481465605340589,
+      20.171113107561826,
+      0.7071509815633534
+    ],
+    "unbounded_indices": [
+      2
+    ]
+  },
   "ForcedVanDerPol": {
     "bifurcation_parameter": null,
     "citation": "B. van der Pol (1920). A theory of the amplitude of free and forced triode vibrations. Radio Review 1.",
@@ -1880,6 +2021,92 @@
       0.43312144864360114
     ],
     "doi": "10.1016/0005-1098(92)90177-h"
+  },
+  "Gissinger": {
+    "bifurcation_parameter": null,
+    "citation": "Gissinger, C. (2012). A new deterministic model for chaotic reversals. European Physical Journal B 85, 137.",
+    "doi": "10.1140/epjb/e2012-20799-5",
+    "correlation_dimension": 1.7903690369656564,
+    "delay": false,
+    "description": "A three-mode model of geomagnetic reversals coupling a dipole, a quadrupole, and a symmetry-breaking velocity mode. Reversals arise through crisis-induced intermittency.",
+    "dt": 0.002081107582895254,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      0.8442190137977049,
+      -1.0719260366360615,
+      -0.008446835744188839
+    ],
+    "kaplan_yorke_dimension": 2.0749643129341955,
+    "lyapunov_spectrum_estimated": [
+      0.0791397784998802,
+      9.731768269679664e-05,
+      -1.05631804664793
+    ],
+    "maximum_lyapunov_estimated": 0.08952483632781158,
+    "mean": [
+      0.21314736292847514,
+      -0.22726658387866236,
+      -0.07679995797225783
+    ],
+    "multiscale_entropy": 0.7705256514177024,
+    "nonautonomous": false,
+    "parameters": {
+      "gamma": 0.9,
+      "mu": 0.119,
+      "nu": 0.1
+    },
+    "period": 10.405537914476271,
+    "pesin_entropy": 0.07982209605363665,
+    "std": [
+      1.0588846097442606,
+      1.1561762869129384,
+      0.25252120058337374
+    ],
+    "unbounded_indices": []
+  },
+  "GlukhovskyDolzhansky": {
+    "bifurcation_parameter": null,
+    "citation": "Glukhovsky, A. B., Dolzhansky, F. V. (1980). Three component models of convection in a rotating fluid. Izvestiya, Atmospheric and Oceanic Physics 16, 311-318. Rescaled form from Leonov, G. A., Kuznetsov, N. V., Mokaev, T. N. (2015). European Physical Journal Special Topics 224, 1421-1458.",
+    "doi": "10.1140/epjst/e2015-02470-3",
+    "correlation_dimension": 2.0616422462366635,
+    "delay": false,
+    "description": "Convection of a fluid in a rotating ellipsoidal cavity, a three-mode model of ocean currents. A Lorenz-like system (Lorenz is the a = 0 case) that supports hidden attractors.",
+    "dt": 0.0001882786552966918,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      -3.6996105991353505,
+      -23.20118505165614,
+      596.5451316453366
+    ],
+    "kaplan_yorke_dimension": 2.1337006072473654,
+    "lyapunov_spectrum_estimated": [
+      0.9414095027409614,
+      -0.008087991145704214,
+      -6.980681498982385
+    ],
+    "maximum_lyapunov_estimated": 0.9784970169377034,
+    "mean": [
+      0.022877709327547676,
+      0.39046765747215206,
+      658.3140633431987
+    ],
+    "multiscale_entropy": 0.9646500000914227,
+    "nonautonomous": false,
+    "parameters": {
+      "a": 0.0052,
+      "r": 687.5,
+      "sigma": 4.0
+    },
+    "period": 0.941393276483459,
+    "pesin_entropy": 0.9414095027409615,
+    "std": [
+      9.022044302599477,
+      93.84813615108234,
+      102.01086992286024
+    ],
+    "unbounded_indices": []
   },
   "GlycolyticOscillation": {
     "bifurcation_parameter": "k",
@@ -2152,6 +2379,50 @@
       0.2651210011476269,
       0.2537525940706787
     ]
+  },
+  "HideSkeldonAcheson": {
+    "bifurcation_parameter": null,
+    "citation": "Hide, R., Skeldon, A. C., Acheson, D. J. (1996). A study of two novel self-exciting single-disc homopolar dynamos: theory. Proceedings of the Royal Society A 452, 1369-1395.",
+    "doi": "10.1098/rspa.1996.0070",
+    "correlation_dimension": 2.00297102311908,
+    "delay": false,
+    "description": "A self-exciting single-disc homopolar dynamo with a series motor; a toy model of the geodynamo and of magnetic field reversals.",
+    "dt": 0.00031274102698562067,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      1.2118661559946877,
+      3.1197405020991855,
+      0.742671238725325
+    ],
+    "kaplan_yorke_dimension": 2.382943574691968,
+    "lyapunov_spectrum_estimated": [
+      0.3959626993974316,
+      -0.0031862629559817426,
+      -1.025678060025309
+    ],
+    "maximum_lyapunov_estimated": 0.4376265951447569,
+    "mean": [
+      0.02919775783876754,
+      2.6116231934160066,
+      0.027778207041443983
+    ],
+    "multiscale_entropy": 1.2014974974157364,
+    "nonautonomous": false,
+    "parameters": {
+      "alpha": 20.0,
+      "beta": 1.25,
+      "kappa": 1.0,
+      "lam": 1.2
+    },
+    "period": 1.5637051349281033,
+    "pesin_entropy": 0.3959626993974316,
+    "std": [
+      0.9319530031370504,
+      4.517978456731413,
+      0.504644575672868
+    ],
+    "unbounded_indices": []
   },
   "HindmarshRose": {
     "bifurcation_parameter": null,
@@ -3108,6 +3379,48 @@
     ],
     "doi": "10.1142/s0218127410025417"
   },
+  "JafariSprott": {
+    "bifurcation_parameter": null,
+    "citation": "Jafari, S., Sprott, J. C. (2013). Simple chaotic flows with a line equilibrium. Chaos, Solitons & Fractals 57, 79-84.",
+    "doi": "10.1016/j.chaos.2013.08.018",
+    "correlation_dimension": 1.9263927290921008,
+    "delay": false,
+    "description": "Case LE1 of the simple chaotic flows with a line of equilibria along the z axis; a hidden attractor.",
+    "dt": 0.0012794875219317595,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      0.17909607754457357,
+      0.5614953910929248,
+      0.3864323542920231
+    ],
+    "kaplan_yorke_dimension": 2.1024931962256583,
+    "lyapunov_spectrum_estimated": [
+      0.054706274115761955,
+      -0.001554789980349635,
+      -0.5166869605703542
+    ],
+    "maximum_lyapunov_estimated": 0.06991612703574876,
+    "mean": [
+      0.006727994147134521,
+      -0.00043485428577455564,
+      -0.4485441402603392
+    ],
+    "multiscale_entropy": 0.5539184975810574,
+    "nonautonomous": false,
+    "parameters": {
+      "a": 15.0,
+      "b": 1.0
+    },
+    "period": 6.397437609658797,
+    "pesin_entropy": 0.054708151257530375,
+    "std": [
+      0.34519866341228533,
+      0.3439506652329282,
+      0.6652296671326593
+    ],
+    "unbounded_indices": []
+  },
   "JerkCircuit": {
     "bifurcation_parameter": null,
     "citation": "Sprott (2011). A new chaotic jerk circuit. IEEE Circ. Sys. 2011.",
@@ -3286,6 +3599,92 @@
       0.7081771943992788
     ],
     "doi": "10.1063/1.4768666"
+  },
+  "LinzSprott": {
+    "bifurcation_parameter": null,
+    "citation": "Linz, S. J., Sprott, J. C. (1999). Elementary chaotic flow. Physics Letters A 259, 240-245.",
+    "doi": "10.1016/S0375-9601(99)00450-8",
+    "correlation_dimension": 2.064597281823299,
+    "delay": false,
+    "description": "The most elementary piecewise-linear chaotic jerk flow, with an absolute-value nonlinearity.",
+    "dt": 0.0013074276389201931,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      0.9685508621478909,
+      0.25248391984633867,
+      -1.3790829019309911
+    ],
+    "kaplan_yorke_dimension": 2.06153709119039,
+    "lyapunov_spectrum_estimated": [
+      0.0394210472583954,
+      4.2001615350462405e-05,
+      -0.6401330265183851
+    ],
+    "maximum_lyapunov_estimated": 0.046255753367107466,
+    "mean": [
+      -0.6626201347514495,
+      -3.403501492967109e-06,
+      -0.0005587977417548716
+    ],
+    "multiscale_entropy": 0.6146820706095306,
+    "nonautonomous": false,
+    "parameters": {
+      "a": 0.6
+    },
+    "period": 6.537138194600965,
+    "pesin_entropy": 0.0398022855424293,
+    "std": [
+      1.0023195458558598,
+      0.9280875645404139,
+      0.9284271736660877
+    ],
+    "unbounded_indices": []
+  },
+  "Liu": {
+    "bifurcation_parameter": null,
+    "citation": "Liu, C., Liu, T., Liu, L., Liu, K. (2004). A new chaotic attractor. Chaos, Solitons & Fractals 22, 1031-1038.",
+    "doi": "10.1016/j.chaos.2004.02.060",
+    "correlation_dimension": 2.1700107387924263,
+    "delay": false,
+    "description": "A Lorenz-like butterfly attractor with a quadratic (x^2) nonlinearity in the third equation; a standard benchmark in the synchronization and fractional-order literature.",
+    "dt": 0.0001698099729007525,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      0.09974917400138619,
+      0.20527253487230326,
+      15.55672513811007
+    ],
+    "kaplan_yorke_dimension": 2.1248497052913646,
+    "lyapunov_spectrum_estimated": [
+      1.782065045363168,
+      0.00043732168592071526,
+      -14.276212855730098
+    ],
+    "maximum_lyapunov_estimated": 1.6372079349040518,
+    "mean": [
+      -0.07030393656702787,
+      -0.07748164523562541,
+      43.449774897857374
+    ],
+    "multiscale_entropy": 0.8884252037537014,
+    "nonautonomous": false,
+    "parameters": {
+      "a": 10,
+      "b": 40,
+      "c": 2.5,
+      "h": 4,
+      "k": 1
+    },
+    "period": 0.8490498645037624,
+    "pesin_entropy": 1.7825029958134617,
+    "std": [
+      5.218175589003125,
+      7.0998639481462025,
+      14.807992842482816
+    ],
+    "unbounded_indices": []
   },
   "LiuChen": {
     "bifurcation_parameter": null,
@@ -3926,6 +4325,99 @@
     ],
     "doi": "10.1111/j.1749-6632.1979.tb29471.x"
   },
+  "McCannYodzis": {
+    "bifurcation_parameter": null,
+    "citation": "McCann, K., Yodzis, P. (1994). Biological conditions for chaos in a three-species food chain. Ecology 75, 561-564.",
+    "doi": "10.2307/1939558",
+    "correlation_dimension": 1.981426289513476,
+    "delay": false,
+    "description": "An allometrically scaled resource-consumer-predator food chain with Holling type II responses; a slow chaotic attractor coexisting with a resource-consumer limit cycle.",
+    "dt": 0.008562800328782316,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      0.8241142340559203,
+      0.21311136960649352,
+      0.7428513599522963
+    ],
+    "kaplan_yorke_dimension": 2.018213264059703,
+    "lyapunov_spectrum_estimated": [
+      0.006862658623398223,
+      5.1156378518930077e-05,
+      -0.3793298734558257
+    ],
+    "maximum_lyapunov_estimated": 0.009560454663674814,
+    "mean": [
+      0.6818709597367052,
+      0.28175277047177383,
+      0.7937142878152604
+    ],
+    "multiscale_entropy": 0.694969277547038,
+    "nonautonomous": false,
+    "parameters": {
+      "c0": 0.5,
+      "k": 0.99,
+      "r0": 0.16129,
+      "xc": 0.4,
+      "xp": 0.08,
+      "yc": 2.009,
+      "yp": 2.876
+    },
+    "period": 42.81400164391158,
+    "pesin_entropy": 0.007288546090668878,
+    "std": [
+      0.18881409792859197,
+      0.11240801117973728,
+      0.12697877378304342
+    ],
+    "unbounded_indices": []
+  },
+  "ModulatedLossLaser": {
+    "bifurcation_parameter": null,
+    "citation": "Arecchi, F. T., Meucci, R., Puccioni, G., Tredicce, J. (1982). Experimental evidence of subharmonic bifurcations, multistability, and turbulence in a Q-switched gas laser. Physical Review Letters 49, 1217-1220.",
+    "doi": "10.1103/PhysRevLett.49.1217",
+    "correlation_dimension": 2.1114044416396585,
+    "delay": false,
+    "description": "A class-B laser with sinusoidally modulated cavity losses, written in log-intensity coordinates. The first variable is the logarithm of the laser intensity.",
+    "dt": 0.002107740327583689,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      1.1237611942529009,
+      5.25737347531678,
+      115.92571801710302
+    ],
+    "kaplan_yorke_dimension": 2.316293680907669,
+    "lyapunov_spectrum_estimated": [
+      0.04328179435275868,
+      0.0,
+      -0.13540850755083486
+    ],
+    "maximum_lyapunov_estimated": 0.07902785408004173,
+    "mean": [
+      -9.002149587592843,
+      -0.012327889703761702,
+      -5.551254904971619e-05
+    ],
+    "multiscale_entropy": 0.7471375870998777,
+    "nonautonomous": true,
+    "parameters": {
+      "eps": 0.04,
+      "m": 0.09,
+      "mu": 2.0,
+      "omega": 1.1
+    },
+    "period": 10.538701637918447,
+    "pesin_entropy": 0.04328179435275869,
+    "std": [
+      8.429604975760912,
+      3.339878906760196,
+      0.7071236574189225
+    ],
+    "unbounded_indices": [
+      2
+    ]
+  },
   "MooreSpiegel": {
     "bifurcation_parameter": null,
     "citation": "Moore, Spiegel. A Thermally Excited Nonlinear Oscillator, Ap. J., 143, 871 (1966)",
@@ -4026,6 +4518,54 @@
       11.937729378510515
     ],
     "doi": "10.1142/9789812567741"
+  },
+  "MuraliLakshmananChua": {
+    "bifurcation_parameter": null,
+    "citation": "Murali, K., Lakshmanan, M., Chua, L. O. (1994). The simplest dissipative nonautonomous chaotic circuit. IEEE Transactions on Circuits and Systems I 41, 462-463.",
+    "doi": "10.1109/81.295246",
+    "correlation_dimension": 2.01727735454498,
+    "delay": false,
+    "description": "A sinusoidally forced series LCR circuit with a Chua diode; the simplest dissipative nonautonomous chaotic circuit.",
+    "dt": 0.0020752831379634864,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      -0.8547386833274493,
+      1.1736113813538247,
+      77.82311767363075
+    ],
+    "kaplan_yorke_dimension": 2.375713646693807,
+    "lyapunov_spectrum_estimated": [
+      0.08845857184984263,
+      0.0,
+      -0.23543823780733802
+    ],
+    "maximum_lyapunov_estimated": 0.07681641406623245,
+    "mean": [
+      -0.10704874580939175,
+      0.1061335331569872,
+      -0.0009607917187065585
+    ],
+    "multiscale_entropy": 1.318038863405061,
+    "nonautonomous": true,
+    "parameters": {
+      "beta": 1.0,
+      "f": 0.15,
+      "m0": -1.02,
+      "m1": -0.55,
+      "omega": 0.75,
+      "sigma": 1.015
+    },
+    "period": 10.376415689817431,
+    "pesin_entropy": 0.08845857184984263,
+    "std": [
+      0.8416339914164463,
+      0.8332468700935108,
+      0.7068807280030308
+    ],
+    "unbounded_indices": [
+      2
+    ]
   },
   "NewtonLiepnik": {
     "bifurcation_parameter": null,
@@ -4250,6 +4790,51 @@
     ],
     "doi": "10.1016/j.physleta.2008.07.032"
   },
+  "ParametricPendulum": {
+    "bifurcation_parameter": null,
+    "citation": "Leven, R. W., Koch, B. P. (1981). Chaotic behaviour of a parametrically excited damped pendulum. Physics Letters A 86, 71-74. See also Bishop, S. R., Clifford, M. J. (1996). Zones of chaotic behaviour in the parametrically excited pendulum. Journal of Sound and Vibration 189, 142-147.",
+    "doi": "10.1016/0375-9601(81)90167-5",
+    "correlation_dimension": 2.3701218079647077,
+    "delay": false,
+    "description": "A damped pendulum whose pivot oscillates vertically (parametric excitation), exhibiting tumbling chaos. The angle is unbounded and mapped through a sine.",
+    "dt": 0.0007150462288491287,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      -32.70455421919954,
+      0.576586539499688,
+      71.50462288491286
+    ],
+    "kaplan_yorke_dimension": 2.7515641518781013,
+    "lyapunov_spectrum_estimated": [
+      0.30995670709330886,
+      0.0,
+      -0.4116108801904904
+    ],
+    "maximum_lyapunov_estimated": 0.25927000283347573,
+    "mean": [
+      -0.006053136516868653,
+      -0.207807532685992,
+      -0.0005295704634104576
+    ],
+    "multiscale_entropy": 1.0309286067015917,
+    "nonautonomous": true,
+    "parameters": {
+      "beta": 0.1,
+      "omega": 2.0,
+      "p": 2.0
+    },
+    "period": 3.5752311442456435,
+    "pesin_entropy": 0.3099567070933088,
+    "std": [
+      0.7143382746382673,
+      1.9167854326175662,
+      0.7072183142081405
+    ],
+    "unbounded_indices": [
+      2
+    ]
+  },
   "PehlivanWei": {
     "bifurcation_parameter": null,
     "citation": "Pehlivan, Ihsan, and Wei Zhouchao (2012). Analysis, nonlinear control, and chaos generator circuit of another strange chaotic system.",
@@ -4451,6 +5036,49 @@
     ],
     "doi": "10.1016/j.chaos.2006.09.012"
   },
+  "Rabinovich": {
+    "bifurcation_parameter": null,
+    "citation": "Pikovskii, A. S., Rabinovich, M. I., Trakhtengerts, V. Yu. (1978). Onset of stochasticity in decay confinement of parametric instability. Soviet Physics JETP 47, 715-719.",
+    "doi": null,
+    "correlation_dimension": 1.9983612936879573,
+    "delay": false,
+    "description": "Three resonantly coupled waves in a plasma, two of which are parametrically excited. A Lorenz-like system that supports coexisting self-excited and hidden attractors.",
+    "dt": 0.00048180671945884514,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      -0.4568906646881108,
+      -2.723437496051769,
+      5.0381600075800135
+    ],
+    "kaplan_yorke_dimension": 2.041737773497067,
+    "lyapunov_spectrum_estimated": [
+      0.2769365172596235,
+      -0.015749730571306818,
+      -6.257803214827042
+    ],
+    "maximum_lyapunov_estimated": 0.28760072111798607,
+    "mean": [
+      0.10481972376767217,
+      0.23937719937576662,
+      3.6454344268288077
+    ],
+    "multiscale_entropy": 1.0302561215158916,
+    "nonautonomous": false,
+    "parameters": {
+      "h": 4.92,
+      "nu1": 1.0,
+      "nu2": 4.0
+    },
+    "period": 2.4090335972942256,
+    "pesin_entropy": 0.2769365172596235,
+    "std": [
+      1.4861082686385696,
+      2.8884132165725918,
+      1.5553707736456637
+    ],
+    "unbounded_indices": []
+  },
   "RabinovichFabrikant": {
     "bifurcation_parameter": null,
     "citation": "Rabinovich, Mikhail I.; Fabrikant, A. L. (1979). Stochastic Self-Modulation of Waves in Nonequilibrium Media. Sov. Phys. JETP.",
@@ -4620,6 +5248,48 @@
       2.4967729790663062
     ],
     "doi": "10.1016/0375-9601(76)90101-8"
+  },
+  "RosslerPrototype4": {
+    "bifurcation_parameter": null,
+    "citation": "Rossler, O. E. (1979). Continuous chaos - four prototype equations. Annals of the New York Academy of Sciences 316, 376-392.",
+    "doi": "10.1111/j.1749-6632.1979.tb29482.x",
+    "correlation_dimension": 2.227209726439059,
+    "delay": false,
+    "description": "Rossler's fourth prototype equation, with a single quadratic term; produces toroidal chaos.",
+    "dt": 0.00127777075997547,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      0.18460020511531067,
+      2.258451864218398,
+      -1.087545944231237
+    ],
+    "kaplan_yorke_dimension": 2.1299828940214587,
+    "lyapunov_spectrum_estimated": [
+      0.07785488429125977,
+      -0.0014387154677838589,
+      -0.5876061542493338
+    ],
+    "maximum_lyapunov_estimated": 0.07446913293891005,
+    "mean": [
+      -0.001684766964967888,
+      0.4488712710386241,
+      -0.449143021337836
+    ],
+    "multiscale_entropy": 0.9288766407001321,
+    "nonautonomous": false,
+    "parameters": {
+      "a": 0.5,
+      "b": 0.5
+    },
+    "period": 6.38885379987735,
+    "pesin_entropy": 0.07819372848643436,
+    "std": [
+      0.711710760057258,
+      0.8337606176393667,
+      0.4330010627831838
+    ],
+    "unbounded_indices": []
   },
   "Rucklidge": {
     "bifurcation_parameter": null,
@@ -4869,6 +5539,53 @@
       1.0681210579739489
     ],
     "doi": "10.1007/978-1-4684-9467-9_5"
+  },
+  "ShawVanDerPol": {
+    "bifurcation_parameter": null,
+    "citation": "Shaw, R. (1981). Strange attractors, chaotic behavior, and information flow. Zeitschrift fur Naturforschung A 36, 80-112.",
+    "doi": "10.1515/zna-1981-0115",
+    "correlation_dimension": 2.135713057353483,
+    "delay": false,
+    "description": "Shaw's variant of the forced Van der Pol oscillator, in which the forcing enters the velocity equation; produces a toroidal (bagel-shaped) attractor.",
+    "dt": 0.0017757541969382867,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      -0.13779034520491928,
+      -0.5780223533324496,
+      139.46740849206415
+    ],
+    "kaplan_yorke_dimension": 2.074647292998208,
+    "lyapunov_spectrum_estimated": [
+      0.10875868413034334,
+      0.0,
+      -1.4631588478379858
+    ],
+    "maximum_lyapunov_estimated": 0.10662241681806302,
+    "mean": [
+      -0.0005508293835654278,
+      0.005618517850461362,
+      -7.630839272692172e-05
+    ],
+    "multiscale_entropy": 0.5948660639681301,
+    "nonautonomous": true,
+    "parameters": {
+      "a": 0.25,
+      "b": 0.7,
+      "c": 1.0,
+      "d": 10.0,
+      "omega": 1.5707963267948966
+    },
+    "period": 8.878770984691434,
+    "pesin_entropy": 0.10875868413034334,
+    "std": [
+      0.35827133584104554,
+      0.4861847201648804,
+      0.7070914121322418
+    ],
+    "unbounded_indices": [
+      2
+    ]
   },
   "ShimizuMorioka": {
     "bifurcation_parameter": null,
@@ -6050,6 +6767,49 @@
     ],
     "doi": "10.1142/s0218127499001383"
   },
+  "Tigan": {
+    "bifurcation_parameter": null,
+    "citation": "Tigan, G., Opris, D. (2008). Analysis of a 3D chaotic system. Chaos, Solitons & Fractals 36, 1315-1319.",
+    "doi": "10.1016/j.chaos.2006.07.052",
+    "correlation_dimension": 2.0573583675951777,
+    "delay": false,
+    "description": "The T system, a Lorenz-like quadratic system that interpolates between Lorenz-type and Chen-type dynamics.",
+    "dt": 0.0005232627057475325,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      -2.90983436008619,
+      -6.345953100144832,
+      12.784680433704175
+    ],
+    "kaplan_yorke_dimension": 2.093980233382107,
+    "lyapunov_spectrum_estimated": [
+      0.29097300721037633,
+      -0.009494566466853654,
+      -2.994874977204807
+    ],
+    "maximum_lyapunov_estimated": 0.35937800045765467,
+    "mean": [
+      0.006668640062677927,
+      0.012435248576739073,
+      12.541373005258976
+    ],
+    "multiscale_entropy": 0.6784793687665357,
+    "nonautonomous": false,
+    "parameters": {
+      "a": 2.1,
+      "b": 0.6,
+      "c": 30.0
+    },
+    "period": 2.6163135287376624,
+    "pesin_entropy": 0.29097300721037633,
+    "std": [
+      2.7431616363983857,
+      4.663796612344631,
+      3.0553029842749804
+    ],
+    "unbounded_indices": []
+  },
   "Torus": {
     "bifurcation_parameter": null,
     "citation": "See, for example, Strogatz (1994). Nonlinear Dynamics and Chaos.",
@@ -6189,6 +6949,144 @@
     ],
     "doi": "10.1086/286027"
   },
+  "UedaAkamatsu": {
+    "bifurcation_parameter": null,
+    "citation": "Ueda, Y., Akamatsu, N. (1981). Chaotically transitional phenomena in the forced negative-resistance oscillator. IEEE Transactions on Circuits and Systems 28, 217-224.",
+    "doi": "10.1109/TCS.1981.1084975",
+    "correlation_dimension": 2.1644202099720515,
+    "delay": false,
+    "description": "A forced negative-resistance (single-well Duffing-Van der Pol) oscillator, producing the broken-egg attractor.",
+    "dt": 0.0012425792280298818,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      -0.6488616701003874,
+      0.3681163653948298,
+      63.371540629524
+    ],
+    "kaplan_yorke_dimension": 2.4265621292359607,
+    "lyapunov_spectrum_estimated": [
+      0.11033723978287895,
+      0.0,
+      -0.2591650179288285
+    ],
+    "maximum_lyapunov_estimated": 0.10205678203710196,
+    "mean": [
+      -0.0013975291852283782,
+      0.00011134260254028292,
+      -0.0011196562407407371
+    ],
+    "multiscale_entropy": 0.6661566359606199,
+    "nonautonomous": true,
+    "parameters": {
+      "b": 0.35,
+      "gamma": 8.0,
+      "mu": 0.2,
+      "nu": 1.02
+    },
+    "period": 6.212896140149409,
+    "pesin_entropy": 0.11033723978287895,
+    "std": [
+      0.4882187004844912,
+      0.45780565127045636,
+      0.7068932198584165
+    ],
+    "unbounded_indices": [
+      2
+    ]
+  },
+  "UnifiedChaotic": {
+    "bifurcation_parameter": null,
+    "citation": "Lu, J., Chen, G., Cheng, D., Celikovsky, S. (2002). Bridge the gap between the Lorenz system and the Chen system. International Journal of Bifurcation and Chaos 12, 2917-2926.",
+    "doi": "10.1142/S021812740200631X",
+    "correlation_dimension": 2.1805256779570494,
+    "delay": false,
+    "description": "A one-parameter family that is chaotic for all alpha in [0, 1], with alpha = 0 giving Lorenz, alpha = 0.8 Lu, and alpha = 1 Chen. The intermediate value alpha = 0.5 is used here.",
+    "dt": 0.00012909526470577184,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      -8.882156359559145,
+      -7.787228512228609,
+      28.247139828215822
+    ],
+    "kaplan_yorke_dimension": 2.1386203271588204,
+    "lyapunov_spectrum_estimated": [
+      1.924195262436156,
+      -0.015200124156717463,
+      -13.771393975116771
+    ],
+    "maximum_lyapunov_estimated": 1.8948589358050896,
+    "mean": [
+      -0.32519932482329506,
+      -0.3177249173762526,
+      24.7000166759354
+    ],
+    "multiscale_entropy": 0.960552994420296,
+    "nonautonomous": false,
+    "parameters": {
+      "alpha": 0.5
+    },
+    "period": 0.6454763235288592,
+    "pesin_entropy": 1.924195263951418,
+    "std": [
+      8.359795969478572,
+      9.056847159558597,
+      6.3518575647922155
+    ],
+    "unbounded_indices": []
+  },
+  "UpadhyayRai": {
+    "bifurcation_parameter": null,
+    "citation": "Upadhyay, R. K., Rai, V. (1997). Why chaos is rarely observed in natural populations. Chaos, Solitons & Fractals 8, 1933-1939. Holling type IV form from Upadhyay, R. K., Raw, S. N. (2011). Complex dynamics of a three species food-chain model with Holling type IV functional response. Nonlinear Analysis: Modelling and Control 16, 353-374.",
+    "doi": "10.1016/S0960-0779(97)00076-3",
+    "correlation_dimension": 1.7471403925048865,
+    "delay": false,
+    "description": "A three-species food chain with Holling type IV (group defence) functional responses.",
+    "dt": 0.012602418217603632,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      0.9729128339931803,
+      0.07313218805929864,
+      0.01190773445188144
+    ],
+    "kaplan_yorke_dimension": 2.0304000970742404,
+    "lyapunov_spectrum_estimated": [
+      0.01773401508100214,
+      -0.0007327973894581376,
+      -0.560290360349122
+    ],
+    "maximum_lyapunov_estimated": 0.019128823686996033,
+    "mean": [
+      0.7436338152614244,
+      0.307220467274489,
+      0.02584262203008928
+    ],
+    "multiscale_entropy": 0.8929170428700883,
+    "nonautonomous": false,
+    "parameters": {
+      "a": 1.0,
+      "a1": 1.0,
+      "a2": 0.2,
+      "b1": 1.0,
+      "c": 0.25,
+      "i": 0.3,
+      "i1": 0.3,
+      "w": 1.95,
+      "w1": 1.38,
+      "w2": 2.85,
+      "w3": 1.6
+    },
+    "period": 63.01209108801816,
+    "pesin_entropy": 0.01773401508100214,
+    "std": [
+      0.2958808518908289,
+      0.22169883031077597,
+      0.029264570579736707
+    ],
+    "unbounded_indices": []
+  },
   "VallisElNino": {
     "bifurcation_parameter": null,
     "citation": "Vallis GK. Conceptual models of El Nio and the southern oscillation. J Geophys Res 1988",
@@ -6301,6 +7199,47 @@
     ],
     "doi": "10.1142/s0218127402005340"
   },
+  "WangChen": {
+    "bifurcation_parameter": null,
+    "citation": "Wang, X., Chen, G. (2012). A chaotic system with only one stable equilibrium. Communications in Nonlinear Science and Numerical Simulation 17, 1264-1272.",
+    "doi": "10.1016/j.cnsns.2011.07.017",
+    "correlation_dimension": 1.8425625631311078,
+    "delay": false,
+    "description": "A hidden chaotic attractor coexisting with a single stable equilibrium point. Reduces to Sprott E when a = 0.",
+    "dt": 0.0013549300816132395,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      0.13277897488817814,
+      0.010932669374716356,
+      4.963242727634867
+    ],
+    "kaplan_yorke_dimension": 2.059273293835448,
+    "lyapunov_spectrum_estimated": [
+      0.06386790979958891,
+      -0.0008206220945970215,
+      -1.0631429438528377
+    ],
+    "maximum_lyapunov_estimated": 0.051154974842824184,
+    "mean": [
+      0.2500334052549557,
+      0.35033008686638534,
+      1.5953013217795797
+    ],
+    "multiscale_entropy": 0.840998831005162,
+    "nonautonomous": false,
+    "parameters": {
+      "a": 0.006
+    },
+    "period": 6.774650408066197,
+    "pesin_entropy": 0.0644291413241071,
+    "std": [
+      0.5365567988961759,
+      0.37152525065548075,
+      2.1790469957543595
+    ],
+    "unbounded_indices": []
+  },
   "WangSun": {
     "bifurcation_parameter": null,
     "citation": "Wang, Z., Sun, Y., van Wyk, B. J., Qi, G. & van Wyk, M. A (2009). A 3-D four-wing attractor and its analysis. Brazilian J. Phys. 39.",
@@ -6346,6 +7285,97 @@
       0.3400255725364155
     ],
     "doi": "10.1590/s0103-97332009000500007"
+  },
+  "Wei": {
+    "bifurcation_parameter": null,
+    "citation": "Wei, Z. (2011). Dynamical behaviors of a chaotic system with no equilibria. Physics Letters A 376, 102-108.",
+    "doi": "10.1016/j.physleta.2011.10.040",
+    "correlation_dimension": 2.1458959702037443,
+    "delay": false,
+    "description": "The first dissipative chaotic flow with no equilibrium points; a canonical hidden-attractor example derived from Sprott D.",
+    "dt": 0.0010737193417024757,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      -1.6018273267314895,
+      -1.749855604464984,
+      3.9829185383420986
+    ],
+    "kaplan_yorke_dimension": 2.064250411989208,
+    "lyapunov_spectrum_estimated": [
+      0.09746603988712803,
+      -0.0001569089987303482,
+      -1.5134832541508008
+    ],
+    "maximum_lyapunov_estimated": 0.07073643490429737,
+    "mean": [
+      -1.4224140345973946,
+      0.00040693157734140366,
+      1.422066997184798
+    ],
+    "multiscale_entropy": 0.8102490616024308,
+    "nonautonomous": false,
+    "parameters": {
+      "a": 0.35
+    },
+    "period": 5.368596708512378,
+    "pesin_entropy": 0.09791855532544043,
+    "std": [
+      1.120906690436558,
+      1.0995667388805166,
+      0.9290892478274427
+    ],
+    "unbounded_indices": []
+  },
+  "WillamowskiRossler": {
+    "bifurcation_parameter": null,
+    "citation": "Willamowski, K.-D., Rossler, O. E. (1980). Irregular oscillations in a realistic abstract quadratic mass action system. Zeitschrift fur Naturforschung A 35, 317-318.",
+    "doi": "10.1515/zna-1980-0308",
+    "correlation_dimension": 1.668674309219544,
+    "delay": false,
+    "description": "A three-species mass-action chemical reaction network with autocatalysis, the canonical example of chemical chaos. Parameter values follow Geysermans and Nicolis.",
+    "dt": 0.00017272671706037736,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      7.68887365658863,
+      0.09787090301870881,
+      21.8891127576971
+    ],
+    "kaplan_yorke_dimension": 2.0699474686649744,
+    "lyapunov_spectrum_estimated": [
+      0.6521875474436046,
+      -0.002346829825265328,
+      -9.290410790001072
+    ],
+    "maximum_lyapunov_estimated": 0.4947351742563956,
+    "mean": [
+      10.034560240666536,
+      14.547048735196888,
+      12.998083952382666
+    ],
+    "multiscale_entropy": 0.6511755847458457,
+    "nonautonomous": false,
+    "parameters": {
+      "k1": 30.0,
+      "k2": 1.0,
+      "k3": 10.0,
+      "k4": 1.0,
+      "k5": 16.5,
+      "km1": 0.25,
+      "km2": 0.0001,
+      "km3": 0.001,
+      "km4": 0.001,
+      "km5": 0.5
+    },
+    "period": 0.8636335853018867,
+    "pesin_entropy": 0.6521875474436046,
+    "std": [
+      14.412072431795544,
+      19.21882950367933,
+      10.184616599303302
+    ],
+    "unbounded_indices": []
   },
   "WindmiReduced": {
     "bifurcation_parameter": null,
