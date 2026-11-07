@@ -1,50 +1,4 @@
 {
-  "Aizawa": {
-    "bifurcation_parameter": null,
-    "citation": "Aizawa, Yoji, and Tatsuya Uezu (1982). Topological Aspects in Chaos and in 2 k-Period Doubling Cascade. Progress of Theoretical Physics 67.3 (1982): 982-985. See also Langford (1984). Numerical studies of torus bifurcations. Numerical Methods for Bifurcation Problems. Birkhauser, Basel, 1984. 285-295.",
-    "doi": "10.1143/PTP.67.982",
-    "correlation_dimension": 1.8926529653780282,
-    "delay": false,
-    "description": "A torus-like attractor related to the forced Lorenz system.",
-    "dt": 0.0005168261376896056,
-    "embedding_dimension": 3,
-    "hamiltonian": false,
-    "initial_conditions": [
-      -0.78450179,
-      -0.62887672,
-      -0.17620268
-    ],
-    "kaplan_yorke_dimension": 2.3501297618370773,
-    "lyapunov_spectrum_estimated": [
-      0.08947878317195473,
-      0.020305496211675024,
-      -0.3090729926541944
-    ],
-    "maximum_lyapunov_estimated": 0.13489555530106362,
-    "multiscale_entropy": 0.514512246123007,
-    "nonautonomous": false,
-    "parameters": {
-      "a": 0.95,
-      "b": 0.7,
-      "c": 0.6,
-      "d": 3.5,
-      "e": 0.25,
-      "f": 0.1
-    },
-    "period": 2.5837,
-    "pesin_entropy": 0.10978427938362978,
-    "unbounded_indices": [],
-    "mean": [
-      0.007206831455761058,
-      -0.021945384443603604,
-      0.6653243755364856
-    ],
-    "std": [
-      0.5509002440964534,
-      0.5544549994998836,
-      0.6959486032459631
-    ]
-  },
   "AnishchenkoAstakhov": {
     "bifurcation_parameter": null,
     "citation": "Anishchenko, et al. Nonlinear dynamics of chaotic and stochastic systems: tutorial and modern developments. 2007.",
@@ -4081,6 +4035,52 @@
       0.3913673061533514
     ],
     "doi": "10.1021/j100027a024"
+  },
+  "Langford": {
+    "bifurcation_parameter": null,
+    "citation": "Langford, W. F. (1984). Numerical studies of torus bifurcations. In Numerical Methods for Bifurcation Problems (Dortmund, 1983), International Series of Numerical Mathematics 70, 285-295. Birkhauser, Basel. See also Fleurantin, E., and Mireles James, J. D. (2019). Resonant tori, transport barriers, and chaos in a vector field with a Neimark-Sacker bifurcation. arXiv:1905.08828.",
+    "doi": "10.1007/978-3-0348-6256-1_19",
+    "correlation_dimension": 1.8926529653780282,
+    "delay": false,
+    "description": "Normal form of an interacting cusp (hysteresis) and Hopf bifurcation with an axial symmetry-breaking term, in which an invariant torus breaks up into a strange attractor.",
+    "dt": 0.0005168261376896056,
+    "embedding_dimension": 3,
+    "hamiltonian": false,
+    "initial_conditions": [
+      -0.78450179,
+      -0.62887672,
+      -0.17620268
+    ],
+    "kaplan_yorke_dimension": 2.3501297618370773,
+    "lyapunov_spectrum_estimated": [
+      0.08947878317195473,
+      0.020305496211675024,
+      -0.3090729926541944
+    ],
+    "maximum_lyapunov_estimated": 0.13489555530106362,
+    "multiscale_entropy": 0.514512246123007,
+    "nonautonomous": false,
+    "parameters": {
+      "a": 0.95,
+      "b": 0.7,
+      "c": 0.6,
+      "d": 3.5,
+      "e": 0.25,
+      "f": 0.1
+    },
+    "period": 2.5837,
+    "pesin_entropy": 0.10978427938362978,
+    "unbounded_indices": [],
+    "mean": [
+      0.007206831455761058,
+      -0.021945384443603604,
+      0.6653243755364856
+    ],
+    "std": [
+      0.5509002440964534,
+      0.5544549994998836,
+      0.6959486032459631
+    ]
   },
   "Laser": {
     "bifurcation_parameter": null,

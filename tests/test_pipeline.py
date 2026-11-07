@@ -7,8 +7,8 @@ import unittest
 
 import numpy as np
 
-from dysts.flows import Lorenz, Rossler
 from dysts.analysis import kaplan_yorke_dimension
+from dysts.flows import Lorenz, Rossler
 from dysts.pipeline import (
     align_period,
     dominant_period_in_samples,
@@ -86,6 +86,22 @@ class TestPipeline(unittest.TestCase):
         self.assertFalse(
             any("Kaplan-Yorke" in f for f in flag_suspicious(conservative))
         )
+
+
+class TestDeprecatedAliases(unittest.TestCase):
+    def test_aizawa_alias(self):
+        """Aizawa still resolves to Langford, warns, and is not listed twice."""
+        from dysts import flows
+        from dysts.systems import get_attractor_list
+
+        with self.assertWarns(DeprecationWarning):
+            from dysts.flows import Aizawa
+        self.assertIs(Aizawa, flows.Langford)
+        self.assertEqual(Aizawa().name, "Langford")
+        names = get_attractor_list()
+        self.assertIn("Langford", names)
+        self.assertNotIn("Aizawa", names)
+        self.assertFalse(hasattr(flows, "NotASystem"))
 
 
 if __name__ == "__main__":

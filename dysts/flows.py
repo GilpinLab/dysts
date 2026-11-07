@@ -5,6 +5,8 @@ For flows that occur on unbounded intervals (eg non-autonomous systems),
 coordinates are transformed to a basis where the domain remains bounded
 """
 
+import warnings
+
 import numpy as np
 
 from .base import DynSys, DynSysDelay, staticjit
@@ -2277,7 +2279,11 @@ class FluidTrampoline(DynSys):
         return x, y, np.cos(th)
 
 
-class Aizawa(DynSys):
+class Langford(DynSys):
+    """Langford's (1984) normal form for an interacting cusp (hysteresis) and Hopf
+    bifurcation, with a term breaking its axial symmetry.
+    """
+
     @staticjit
     def _rhs(x, y, z, t, a, b, c, d, e, f):
         xdot = x * z - b * x - d * y
@@ -4198,3 +4204,20 @@ class ArecchiFeedbackLaser(DynSys):
         row2 = [-y, -x - 1, 0]
         row3 = [-b1 * eps2, 0, -eps2]
         return row1, row2, row3
+
+
+## Deprecated names, resolved lazily so they never appear in dir(dysts.flows) and
+## are not counted twice by dysts.systems.get_attractor_list
+_DEPRECATED_ALIASES = {"Aizawa": "Langford"}
+
+
+def __getattr__(name):
+    if name in _DEPRECATED_ALIASES:
+        new_name = _DEPRECATED_ALIASES[name]
+        warnings.warn(
+            f"dysts.flows.{name} is deprecated; use dysts.flows.{new_name}",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return globals()[new_name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
