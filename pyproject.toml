@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "dysts"
-version = "0.95"
+version = "0.96"
 description = "More than 100 strange attractors"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -20,6 +20,9 @@ dependencies = ["numpy", "scipy", "tqdm"]
 benchmarks = ["darts", "torch", "pandas"]
 numba = ["numba"]
 extra = ["sdeint", "hnswlib", "statsmodels", "scikit-learn"]
+# Tools for adding new systems to the database with dysts.pipeline (multiscale
+# entropy, symbolic Jacobians, diagnostic plots); numba makes the ensemble steps ~50x faster
+curation = ["numba", "neurokit2", "sympy", "matplotlib"]
 
 [dependency-groups]
 dev = ["ruff", "ipykernel", "matplotlib"]

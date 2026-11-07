@@ -19,6 +19,32 @@ Base Classes
 .. automodule:: dysts.base
     :members:
 
+Systems (flows)
+===================
+
+Continuous-time systems. Each class takes its default parameters, initial condition,
+timestep and period from the JSON database; see ``dysts/data/chaotic_attractors.json``
+for the citation and description of every system.
+
+.. automodule:: dysts.flows
+    :members:
+    :undoc-members:
+    :exclude-members: rhs, jac
+
+Discrete maps
+===================
+
+.. automodule:: dysts.maps
+    :members:
+    :undoc-members:
+    :exclude-members: rhs, rhs_inv
+
+Adding systems (pipeline)
+=========================
+
+.. automodule:: dysts.pipeline
+    :members:
+
 .. Datasets
 .. ===================
 

@@ -21,12 +21,17 @@ project = 'dysts'
 copyright = '2021--2025, William Gilpin'
 author = 'The Gilpin Lab'
 
-# The full version, including alpha/beta/rc tags
-release = '1.0'
-
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('..'))
+
+# The full version, including alpha/beta/rc tags, read from the installed package
+try:
+    from importlib.metadata import version as _pkg_version
+    release = _pkg_version("dysts")
+except Exception:
+    release = "0.96"
+version = release
 
 # -- General configuration ---------------------------------------------------
 
@@ -37,7 +42,8 @@ extensions = [
     'sphinx.ext.autodoc',
     # 'sphinx.ext.autosummary',
     'nbsphinx',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'sphinx.ext.todo',
 ]
 # autosummary_generate = True  # Turn on sphinx.ext.autosummary
 autodoc_index_modules = True

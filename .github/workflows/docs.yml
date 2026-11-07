@@ -1,0 +1,67 @@
+name: Build and deploy docs
+
+# Builds the Sphinx API reference on every push to master (and checks that it builds on
+# pull requests), then publishes it to GitHub Pages. The site is laid out as
+# <pages-root>/spbuild/html/, the documentation URL used in the README.
+#
+# One-time setup: in the repository Settings > Pages, set "Source" to "GitHub Actions".
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "dysts/**"
+      - "docs/**"
+      - "pyproject.toml"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    branches: [master]
+    paths:
+      - "dysts/**"
+      - "docs/**"
+      - "pyproject.toml"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package and Sphinx
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+          pip install sphinx nbsphinx
+      - name: Build HTML
+        run: |
+          sphinx-build -b html docs _site/spbuild/html
+          touch _site/.nojekyll
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
