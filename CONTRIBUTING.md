@@ -101,6 +101,16 @@ Feel free to copy and paste and then fill out the fields that you know; we have 
 
 The pipeline (i) finds an integration timestep and dominant period, (ii) rescales the period so that the first coordinate oscillates at the same rate as the Rossler system when both are resampled at 100 points per period, (iii) settles onto the attractor and detects unbounded variables, (iv) estimates the Lyapunov spectrum by a QR method over an ensemble of initial conditions along with the Kaplan-Yorke dimension, Pesin entropy, correlation dimension and multiscale entropy, and (v) independently estimates the largest Lyapunov exponent from the divergence of nearby trajectories. `report["flags"]` lists inconsistencies between these estimates (for example, QR and direct Lyapunov exponents that disagree by more than a factor of two). Pass `write=False` to inspect the entry before it is written. The multiscale entropy requires the optional dependency `neurokit2`, and the ensemble steps are much faster when `numba` is installed.
 
+## Releasing
+
+Releases are published to PyPI by `.github/workflows/python-publish.yml` when a version tag is pushed:
+
+    # set version = "X.Y" in pyproject.toml, commit, then
+    git tag vX.Y
+    git push origin vX.Y
+
+The workflow refuses to publish if the tag does not match the version in `pyproject.toml`, runs the unit tests, builds the sdist and wheel, and uploads them (using the `PYPI_API_TOKEN` secret if present, otherwise PyPI Trusted Publishing from the `pypi` environment).
+
 ## Development to-do list
 
 A partial list of potential improvements in future versions. We very much appreciate any help or suggestsions for these tasks.
