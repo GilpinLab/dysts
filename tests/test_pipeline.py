@@ -8,10 +8,12 @@ import unittest
 import numpy as np
 
 from dysts.flows import Lorenz, Rossler
+from dysts.analysis import kaplan_yorke_dimension
 from dysts.pipeline import (
     align_period,
     dominant_period_in_samples,
     flag_suspicious,
+    lyapunov_spectrum_variational,
     make_system,
     points_per_oscillation,
 )
@@ -50,6 +52,22 @@ class TestPipeline(unittest.TestCase):
         achieved = dominant_period_in_samples(eq)
         self.assertLess(abs(achieved / target - 1), 0.25)
 
+    def test_variational_spectrum_lorenz(self):
+        """The variational spectrum recovers the known Lorenz exponents."""
+        eq = Lorenz()
+        x0 = eq.make_trajectory(300, resample=True, postprocess=False)[-1]
+        lyap = lyapunov_spectrum_variational(eq, x0, 150 * eq.period, eq.period / 5)
+        self.assertAlmostEqual(lyap[0], 0.906, delta=0.08)
+        self.assertLess(abs(lyap[1]), 0.02)
+        self.assertAlmostEqual(lyap.sum(), -(10 + 1 + 8 / 3), delta=0.01)
+
+    def test_kaplan_yorke_all_negative(self):
+        """A fixed point (all exponents negative) has dimension zero."""
+        self.assertEqual(kaplan_yorke_dimension([-0.1, -0.5, -2.0]), 0.0)
+        self.assertAlmostEqual(
+            kaplan_yorke_dimension([0.9, 0.0, -14.6]), 2 + 0.9 / 14.6
+        )
+
     def test_flags(self):
         entry = {
             "embedding_dimension": 3,
@@ -63,6 +81,11 @@ class TestPipeline(unittest.TestCase):
         flags = flag_suspicious(bad)
         self.assertTrue(any("disagree" in f for f in flags))
         self.assertTrue(any("Kaplan-Yorke" in f for f in flags))
+        # conservative systems legitimately have Kaplan-Yorke dimension equal to d
+        conservative = dict(entry, hamiltonian=True, kaplan_yorke_dimension=3.0)
+        self.assertFalse(
+            any("Kaplan-Yorke" in f for f in flag_suspicious(conservative))
+        )
 
 
 if __name__ == "__main__":

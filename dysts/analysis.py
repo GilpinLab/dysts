@@ -601,6 +601,9 @@ def kaplan_yorke_dimension(spectrum0: np.ndarray) -> float:
     spectrum = np.sort(spectrum0)[::-1]
     d = len(spectrum)
     cspec = np.cumsum(spectrum)
+    if not np.any(cspec >= 0):
+        # every exponent is negative: the orbit is attracted to a fixed point
+        return 0.0
     j = np.max(np.where(cspec >= 0))
     if j > d - 2:
         j = d - 2

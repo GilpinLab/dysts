@@ -5,7 +5,7 @@ build-backend = "uv_build"
 [project]
 name = "dysts"
 version = "0.97"
-description = "More than 100 strange attractors"
+description = "More than 170 strange attractors"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
