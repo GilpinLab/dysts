@@ -103,13 +103,13 @@ The pipeline (i) finds an integration timestep and dominant period, (ii) rescale
 
 ## Releasing
 
-Releases are published to PyPI by `.github/workflows/python-publish.yml` when a version tag is pushed:
+Releases are published to PyPI and GitHub by `.github/workflows/python-publish.yml` when a version tag is pushed:
 
     # set version = "X.Y" in pyproject.toml, commit, then
-    git tag vX.Y
+    git tag -a vX.Y -m "Release notes"
     git push origin vX.Y
 
-The workflow refuses to publish if the tag does not match the version in `pyproject.toml`, runs the unit tests, builds the sdist and wheel, and uploads them (using the `PYPI_API_TOKEN` secret if present, otherwise PyPI Trusted Publishing from the `pypi` environment).
+The workflow refuses to publish if the tag does not match the version in `pyproject.toml`, runs the unit tests, builds the sdist and wheel, and uploads them to PyPI (using the `PYPI_API_TOKEN` secret if present, otherwise PyPI Trusted Publishing from the `pypi` environment). It then creates the GitHub release for the tag, with the same files attached and the tag message as the release notes.
 
 ## Development to-do list
 
