@@ -8,7 +8,7 @@ The steps are:
    of all systems in the database oscillate at a comparable rate.
 2. Pick an initial condition on the attractor and detect unbounded variables.
 3. Estimate the mean and standard deviation of each variable.
-4. Estimate the Lyapunov spectrum (QR method) over an ensemble of initial conditions,
+4. Estimate the Lyapunov spectrum over an ensemble of initial conditions,
    together with the Kaplan-Yorke dimension, Pesin entropy, correlation dimension and
    multiscale entropy.
 5. Independently estimate the largest Lyapunov exponent by direct trajectory divergence.
