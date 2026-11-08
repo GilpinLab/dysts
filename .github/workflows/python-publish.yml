@@ -67,6 +67,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
+          skip-existing: true
 
   github-release:
     runs-on: ubuntu-latest
@@ -75,9 +76,6 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           name: release-dists
@@ -86,8 +84,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* \
+          # report the failing command's output as an annotation, readable without signing in
+          trap 'echo "::error::$(tail -c 600 err.txt | tr "\n" " ")"' ERR
+          TAG="$GITHUB_REF_NAME"
+          # the release notes are the annotated tag's message, read from the API
+          SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq .object.sha 2>> err.txt)
+          gh api "repos/$GITHUB_REPOSITORY/git/tags/$SHA" --jq .message > notes.md 2>> err.txt
+          gh release create "$TAG" dist/* \
             --repo "$GITHUB_REPOSITORY" \
-            --title "dysts ${GITHUB_REF_NAME#v}" \
-            --notes-from-tag \
-            --verify-tag
+            --title "dysts ${TAG#v}" \
+            --notes-file notes.md 2>> err.txt
