@@ -1,5 +1,5 @@
 """
-Dynamical systems in Python - More than 170 strange attractors
+Dynamical systems in Python - More than 220 strange attractors
 
 This package provides implementations of various dynamical systems including:
 - Continuous-time systems (flows)

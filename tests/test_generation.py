@@ -130,12 +130,13 @@ class TestJacobian(unittest.TestCase):
             d = len(eq.ic)
             jac_fd = np.zeros((d, d))
             for i in range(d):
+                # central difference with a step scaled to the size of the coordinate
+                h = eps * (1 + abs(eq.ic[i]))
                 ei = np.zeros(d)
-                ei[i] = 1
+                ei[i] = h
                 jac_fd[:, i] = (
-                    np.array(eq.rhs(eq.ic + eps * ei, 0))
-                    - np.array(eq.rhs(eq.ic - eps * ei, 0))
-                ) / (2 * eps)
+                    np.array(eq.rhs(eq.ic + ei, 0)) - np.array(eq.rhs(eq.ic - ei, 0))
+                ) / (2 * h)
 
             self.assertTrue(
                 np.allclose(jac_analytic, jac_fd, atol=1e-5),

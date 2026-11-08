@@ -4206,6 +4206,1345 @@ class ArecchiFeedbackLaser(DynSys):
         return row1, row2, row3
 
 
+class ACTAttractor(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, alpha, beta, delta, mu):
+        xdot = alpha * (x - y)
+        ydot = -4 * alpha * y + x * z + mu * x**3
+        zdot = -delta * alpha * z + x * y + beta * z**2
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, alpha, beta, delta, mu):
+        row1 = [alpha, -alpha, 0]
+        row2 = [3*mu*x**2 + z, -4*alpha, x]
+        row3 = [y, x, -alpha*delta + 2*beta*z]
+        return row1, row2, row3
+
+
+class AFMCantilever(DynSys):
+    @staticjit
+    def _rhs(x, y, th, t, a0, d0, delta, gam, omega, sig):
+        r = a0 + x
+        xdot = y
+        ydot = -x - delta * y - d0 / r**2 + sig**6 * d0 / (30 * r**8) + gam * np.cos(th)
+        thdot = omega
+        return xdot, ydot, thdot
+
+    @staticjit
+    def _postprocessing(x, y, th):
+        return x, y, np.sin(th)
+
+    @staticjit
+    def _jac(x, y, th, t, a0, d0, delta, gam, omega, sig):
+        row1 = [0, 1, 0]
+        row2 = [-4/15*d0*sig**6/(a0 + x)**9 + 2*d0/(a0 + x)**3 - 1, -delta, -gam*np.sin(th)]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class AzizAlaouiLeslieGower(DynSys):
+    @staticjit
+    def _rhs(lx, ly, lz, t, a0, a1, b0, c3, d0, d1, d2, v0, v1, v2, v3):
+        # logarithms of the prey, specialist predator and top predator densities
+        x = np.exp(lx)
+        y = np.exp(ly)
+        z = np.exp(lz)
+        lxdot = a0 - b0 * x - v0 * y / (d0 + x)
+        lydot = -a1 + v1 * x / (d0 + x) - v2 * z / (d1 + y)
+        lzdot = z * (c3 - v3 / (d2 + y))
+        return lxdot, lydot, lzdot
+
+    @staticjit
+    def _jac(lx, ly, lz, t, a0, a1, b0, c3, d0, d1, d2, v0, v1, v2, v3):
+        row1 = [-b0*np.exp(lx) + v0*np.exp(lx + ly)/(d0 + np.exp(lx))**2, -v0*np.exp(ly)/(d0 + np.exp(lx)), 0]
+        row2 = [d0*v1*np.exp(lx)/(d0 + np.exp(lx))**2, v2*np.exp(ly + lz)/(d1 + np.exp(ly))**2, -v2*np.exp(lz)/(d1 + np.exp(ly))]
+        row3 = [0, v3*np.exp(ly + lz)/(d2 + np.exp(ly))**2, (c3 - v3/(d2 + np.exp(ly)))*np.exp(lz)]
+        return row1, row2, row3
+
+
+class BateHilker(DynSys):
+    @staticjit
+    def _rhs(ln, lp, li, t, dbeta, h, m, mu, r):
+        # logarithms of prey density, predator density and infected fraction of predators
+        n = np.exp(ln)
+        pr = np.exp(lp)
+        i = np.exp(li)
+        fn = n / (h + n)
+        lndot = r * (1 - n) - pr / (h + n)
+        lpdot = fn - m - mu * i
+        lidot = dbeta * (1 - i) - fn
+        return lndot, lpdot, lidot
+
+    @staticjit
+    def _jac(ln, lp, li, t, dbeta, h, m, mu, r):
+        row1 = [-r*np.exp(ln) + np.exp(ln + lp)/(h + np.exp(ln))**2, -np.exp(lp)/(h + np.exp(ln)), 0]
+        row2 = [h*np.exp(ln)/(h**2 + 2*h*np.exp(ln) + np.exp(2*ln)), 0, -mu*np.exp(li)]
+        row3 = [-h*np.exp(ln)/(h + np.exp(ln))**2, 0, -dbeta*np.exp(li)]
+        return row1, row2, row3
+
+
+class BlasiusHuppertStone(DynSys):
+    @staticjit
+    def _rhs(u, v, w, t, a, al1, al2, b, c, k1, k2, wstar):
+        f1 = u * v / (1 + k1 * u)
+        f2 = v * w / (1 + k2 * v)
+        udot = a * u - al1 * f1
+        vdot = -b * v + al1 * f1 - al2 * f2
+        wdot = -c * (w - wstar) + al2 * f2
+        return udot, vdot, wdot
+
+    @staticjit
+    def _jac(u, v, w, t, a, al1, al2, b, c, k1, k2, wstar):
+        row1 = [a - al1*v/(k1*u + 1)**2, -al1*u/(k1*u + 1), 0]
+        row2 = [al1*v/(k1*u + 1)**2, al1*u/(k1*u + 1) + al2*k2*v*w/(k2*v + 1)**2 - al2*w/(k2*v + 1) - b, -al2*v/(k2*v + 1)]
+        row3 = [0, al2*w/(k2*v + 1)**2, al2*v/(k2*v + 1) - c]
+        return row1, row2, row3
+
+
+class CarrollRossler(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, beta, gam, gam_x, lam, mu):
+        gx = mu * np.maximum(x - 3, 0.0)
+        xdot = -(gam_x * x + beta * y + lam * z)
+        ydot = x + (gam - 0.02) * y
+        zdot = gx - z
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, beta, gam, gam_x, lam, mu):
+        row1 = [-gam_x, -beta, -lam]
+        row2 = [1, gam - 0.02, 0]
+        row3 = [mu * 0.5 * (1 + np.sign(x - 3)), 0, -1]
+        return row1, row2, row3
+
+
+class ChuaCubic(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, alpha, beta, c):
+        xdot = alpha * (y - x**3 - c * x)
+        ydot = x - y + z
+        zdot = -beta * y
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, alpha, beta, c):
+        row1 = [-alpha*(c + 3*x**2), alpha, 0]
+        row2 = [1, -1, 1]
+        row3 = [0, -beta, 0]
+        return row1, row2, row3
+
+
+
+class ConsecutiveAutocatalator(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, a, dax, day, daz):
+        rx = dax * x * z
+        ry = day * y * z**2
+        xdot = 1 - x - rx
+        ydot = rx - y - ry
+        zdot = 1 - (1 + daz) * z + a * (rx + ry)
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, a, dax, day, daz):
+        row1 = [-dax*z - 1, 0, -dax*x]
+        row2 = [dax*z, -day*z**2 - 1, dax*x - 2*day*y*z]
+        row3 = [a*dax*z, a*day*z**2, a*(dax*x + 2*day*y*z) - daz - 1]
+        return row1, row2, row3
+
+
+class DarukaDitlevsen(DynSys):
+    @staticjit
+    def _rhs(x, tau, th, t, a, al, kap, lam, omega):
+        xdot = lam * tau
+        taudot = -(al - x + x**3) - kap * tau - a * x * np.sin(th)
+        thdot = omega
+        return xdot, taudot, thdot
+
+    @staticjit
+    def _postprocessing(x, tau, th):
+        return x, tau, np.sin(th)
+
+    @staticjit
+    def _jac(x, tau, th, t, a, al, kap, lam, omega):
+        row1 = [0, lam, 0]
+        row2 = [-a*np.sin(th) - 3*x**2 + 1, -kap, -a*x*np.cos(th)]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class DoubleScrollJerk(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, a):
+        xdot = y
+        ydot = z
+        zdot = -a * (z + y + x - np.sign(x))
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, a):
+        row1 = [0, 1, 0]
+        row2 = [0, 0, 1]
+        row3 = [-a, -a, -a]
+        return row1, row2, row3
+
+
+class DynamicHallInstability(DynSys):
+    @staticjit
+    def _rhs(ex, ez, n, t, beta, e0, eta, eth, exs, kappa, na, nd, nstar, t0, wfac, x0, xs):
+        e2 = ex**2 + ez**2
+        w = wfac * e2
+        r = w / (2 * eth)
+        xion = x0 * np.sqrt(r) / (1 + r) / (1 + np.exp((eth - 0.5 * w) / (2 * e0 / 3 + eta * w / 3)))
+        trec = t0 * (e0 / (e0 + 0.5 * (eta + 1) * w)) ** 1.5
+        exdot = kappa * ((1 + beta**2) * nstar * exs - n * ex + beta * n * ez)
+        ezdot = kappa * (-n * ez - beta * n * ex)
+        ndot = 1e-6 * xs * (na - n) - 10 * trec * n * (n + nd) + 10 * xion * n * (na - n)
+        return exdot, ezdot, ndot
+
+    @staticjit
+    def _jac(ex, ez, n, t, beta, e0, eta, eth, exs, kappa, na, nd, nstar, t0, wfac, x0, xs):
+        c0 = kappa*n
+        c1 = -c0
+        c2 = beta*c0
+        c3 = ex*wfac
+        c4 = 0.5*eta + 0.5
+        c5 = ex**2 + ez**2
+        c6 = c5*wfac
+        c7 = (c4*c6 + e0)**(-1.0)
+        c8 = (c7*e0)**1.5
+        c9 = n + nd
+        c10 = 30.0*c4*c7*c8*c9*n*t0
+        c11 = (1/3)*c6*eta + (2/3)*e0
+        c12 = c11**(-1.0)
+        c13 = -0.5*c6 + eth
+        c14 = np.exp(c12*c13)
+        c15 = c14 + 1
+        c16 = c15**(-1.0)
+        c17 = c16*ex
+        c18 = np.sqrt(c5)
+        c19 = np.sqrt(2)
+        c20 = wfac/eth
+        c21 = np.sqrt(c20)
+        c22 = (1/2)*c20*c5 + 1
+        c23 = c22**(-1.0)
+        c24 = -n + na
+        c25 = 5*c19*c21*c23*c24*n*x0
+        c26 = c25/c18
+        c27 = 1.0*c12
+        c28 = (2/3)*c13*eta/c11**2
+        c29 = c14*c18*c25/c15**2
+        c30 = 5*c18*c19*c20*c21*c24*n*x0/c22**2
+        c31 = ez*wfac
+        c32 = c16*ez
+        c33 = 10*c8*t0
+        row1 = [c1, c2, kappa*(beta*ez - ex)]
+        row2 = [-c2, c1, -kappa*(beta*ex + ez)]
+        row3 = [c10*c3 + c17*c26 - c17*c30 - c29*(-c27*c3 - c28*c3), c10*c31 + c26*c32 - c29*(-c27*c31 - c28*c31) - c30*c32, 5*c16*c18*c19*c21*c23*c24*x0 - 5*c16*c18*c19*c21*c23*n*x0 - c33*c9 - c33*n - 1e-06*xs]
+        return row1, row2, row3
+
+
+class DynasticCycle(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, b, d, e, g, h, q, r):
+        xdot = x * (1 - x - y / (b + x) - h * z)
+        ydot = q * y * (e * x / (b + x) - 1 - z / (d + y))
+        zdot = r * (x * y / (b + x) - g * z)
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, b, d, e, g, h, q, r):
+        row1 = [-b*y/(b + x)**2 - h*z - 2*x + 1, -x/(b + x), -h*x]
+        row2 = [b*e*q*y/(b + x)**2, q*y*z/(d + y)**2 + q*(e*x/(b + x) - z/(d + y) - 1), -q*y/(d + y)]
+        row3 = [b*r*y/(b + x)**2, r*x/(b + x), -g*r]
+        return row1, row2, row3
+
+
+class ElectrostaticMEMS(DynSys):
+    @staticjit
+    def _rhs(x, y, th, t, a, beta, gam, mu, omega):
+        xdot = y
+        ydot = (
+            -mu * y
+            - x
+            - beta * x**3
+            + gam * ((1 + a * np.sin(th)) ** 2 / (1 - x) ** 2 - 1 / (1 + x) ** 2)
+        )
+        thdot = omega
+        return xdot, ydot, thdot
+
+    @staticjit
+    def _postprocessing(x, y, th):
+        return x, y, np.sin(th)
+
+    @staticjit
+    def _jac(x, y, th, t, a, beta, gam, mu, omega):
+        row1 = [0, 1, 0]
+        row2 = [-3*beta*x**2 + 2*gam/(x + 1)**3 - 2*gam*(a*np.sin(th) + 1)**2/(x - 1)**3 - 1, -mu, 2*a*gam*(a*np.sin(th) + 1)*np.cos(th)/(x - 1)**2]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class ForcedMPR(DynSys):
+    @staticjit
+    def _rhs(r, v, th, t, delta, eta, i0, j, omega):
+        rdot = delta / np.pi + 2 * r * v
+        vdot = v**2 + eta + j * r + i0 * np.sin(th) - (np.pi * r) ** 2
+        thdot = omega
+        return rdot, vdot, thdot
+
+    @staticjit
+    def _postprocessing(r, v, th):
+        return r, v, np.sin(th)
+
+    @staticjit
+    def _jac(r, v, th, t, delta, eta, i0, j, omega):
+        row1 = [2*v, 2*r, 0]
+        row2 = [j - 2*np.pi**2*r, 2*v, i0*np.cos(th)]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class ForcedMorrisLecar(DynSys):
+    @staticjit
+    def _rhs(
+        v, w, th, t,
+        a1, c, f1, gca, gk, gl, idc, phi, v1, v2, v3, v4, vca, vk, vl,
+    ):
+        minf = 0.5 * (1 + np.tanh((v - v1) / v2))
+        winf = 0.5 * (1 + np.tanh((v - v3) / v4))
+        vdot = (
+            -gca * minf * (v - vca)
+            - gk * w * (v - vk)
+            - gl * (v - vl)
+            + idc
+            + a1 * np.sin(th)
+        ) / c
+        wdot = phi * (winf - w) * np.cosh((v - v3) / (2 * v4))
+        thdot = 2 * np.pi * f1
+        return vdot, wdot, thdot
+
+    @staticjit
+    def _postprocessing(v, w, th):
+        return v, w, np.sin(th)
+
+    @staticjit
+    def _jac(v, w, th, t, a1, c, f1, gca, gk, gl, idc, phi, v1, v2, v3, v4, vca, vk, vl,):
+        row1 = [-(0.5*gca*(v - vca)/np.cosh((v - v1)/v2)**2 + v2*(0.5*gca*(np.tanh((v - v1)/v2) + 1) + gk*w + gl))/(c*v2), gk*(-v + vk)/c, a1*np.cos(th)/c]
+        row2 = [(1/2)*phi*((-w + 0.5*np.tanh((v - v3)/v4) + 0.5)*np.sinh((1/2)*(v - v3)/v4) + 1.0*np.cosh((1/2)*(v - v3)/v4)/np.cosh((v - v3)/v4)**2)/v4, -phi*np.cosh((1/2)*(v - v3)/v4), 0]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class ForcedWilsonCowan(DynSys):
+    @staticjit
+    def _rhs(x, y, th, t, a, b, bf, c, d, omega, rx, ry):
+        xdot = -x + 1 / (1 + np.exp(-(a * x - b * y + rx + bf * np.cos(th))))
+        ydot = -y + 1 / (1 + np.exp(-(c * x - d * y + ry)))
+        thdot = omega
+        return xdot, ydot, thdot
+
+    @staticjit
+    def _postprocessing(x, y, th):
+        return x, y, np.sin(th)
+
+    @staticjit
+    def _jac(x, y, th, t, a, b, bf, c, d, omega, rx, ry):
+        row1 = [a*np.exp(-a*x + b*y - bf*np.cos(th) - rx)/(np.exp(-a*x + b*y - bf*np.cos(th) - rx) + 1)**2 - 1, -1/4*b/np.cosh((1/2)*a*x - 1/2*b*y + (1/2)*bf*np.cos(th) + (1/2)*rx)**2, -1/4*bf*np.sin(th)/np.cosh((1/2)*a*x - 1/2*b*y + (1/2)*bf*np.cos(th) + (1/2)*rx)**2]
+        row2 = [(1/4)*c/np.cosh((1/2)*c*x - 1/2*d*y + (1/2)*ry)**2, -1/4*d/np.cosh((1/2)*c*x - 1/2*d*y + (1/2)*ry)**2 - 1, 0]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class GaspardNicolis(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, k1, k10, k2, k3, k4, k5, k6, k7, k8, k9, km, km9):
+        w1 = k1 * x - km * x**2
+        w2 = k2 * x**2 - km * x**3
+        w3 = k3 * x * y - km * y
+        w4 = k4 * x * z - km * z
+        w5 = k5 * x * y - km * x * y**2
+        w6 = k6 * y * z - km * y**2 * z
+        w7 = k7 * y - km
+        w8 = k8 * x - km * x * z
+        w9 = k9 * z**2 - km9 * z**3
+        w10 = k10 * z - km
+        xdot = w1 + w2 - w3 - w4
+        ydot = w5 + w6 - w7
+        zdot = w8 + w9 - w10
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, k1, k10, k2, k3, k4, k5, k6, k7, k8, k9, km, km9):
+        row1 = [k1 + 2*k2*x - k3*y - k4*z - 3*km*x**2 - 2*km*x, -k3*x + km, -k4*x + km]
+        row2 = [y*(k5 - km*y), k5*x + k6*z - k7 - 2*km*x*y - 2*km*y*z, y*(k6 - km*y)]
+        row3 = [k8 - km*z, 0, -k10 + 2*k9*z - km*x - 3*km9*z**2]
+        return row1, row2, row3
+
+
+class GilpinSpiral(DynSys):
+    @staticjit
+    def _rhs(lx, ly, lz, t, a11, a12, a13, a21, a22, a23, a31, a32, r1, r2, r3):
+        # logarithms of the two prey and the predator
+        x = np.exp(lx)
+        y = np.exp(ly)
+        z = np.exp(lz)
+        lxdot = r1 - a11 * x - a12 * y - a13 * z
+        lydot = r2 - a21 * x - a22 * y - a23 * z
+        lzdot = -r3 + a31 * x + a32 * y
+        return lxdot, lydot, lzdot
+
+    @staticjit
+    def _jac(lx, ly, lz, t, a11, a12, a13, a21, a22, a23, a31, a32, r1, r2, r3):
+        row1 = [-a11*np.exp(lx), -a12*np.exp(ly), -a13*np.exp(lz)]
+        row2 = [-a21*np.exp(lx), -a22*np.exp(ly), -a23*np.exp(lz)]
+        row3 = [a31*np.exp(lx), a32*np.exp(ly), 0]
+        return row1, row2, row3
+
+
+class HaimNickel(DynSys):
+    @staticjit
+    def _rhs(e, th, eta, t, a, b, c, ch, g1, g2, r, v):
+        ee = np.exp(e)
+        i_f = (ch * np.exp(0.5 * e) / (1.0 + ch * ee) + a * ee) * (1.0 - th)
+        edot = (v - e) / r - i_f
+        thdot = (np.exp(0.5 * e) / (1.0 + ch * ee) * (1.0 - th) - b * ch * eta * ee) / g1
+        etadot = (np.exp(2 * e) * (th - eta) - c * ch * eta * ee) / g2
+        return edot, thdot, etadot
+
+    @staticjit
+    def _jac(e, th, eta, t, a, b, c, ch, g1, g2, r, v):
+        c0 = 1.0 - th
+        c1 = np.exp(e)
+        c2 = a*c1
+        c3 = c1*ch
+        c4 = c3 + 1.0
+        c5 = np.exp(1.5*e)/c4**2
+        c6 = c4**(-1.0)
+        c7 = np.exp(0.5*e)
+        c8 = c6*c7
+        c9 = c8*ch
+        c10 = g1**(-1.0)
+        c11 = b*c3
+        c12 = c*ch
+        c13 = g2**(-1.0)
+        c14 = c1*c13
+        row1 = [-c0*(c2 - c5*ch**2 + 0.5*c9) - 1/r, c2 + c9, 0]
+        row2 = [c10*(-c0*c5*ch + 0.5*c0*c6*c7 - c11*eta), -c10*c8, -c10*c11]
+        row3 = [c14*(2*c1*(-eta + th) - c12*eta), c13*np.exp(2*e), c14*(-c1 - c12)]
+        return row1, row2, row3
+
+
+class IceAgeVdPDuffing(DynSys):
+    @staticjit
+    def _rhs(x, y, th, t, alpha, beta, c3, gamma, k1, kappa, omega, tau):
+        g = -y + c3 * y**3
+        xdot = (gamma * k1 * np.sin(th) - beta - g) / (tau * kappa)
+        ydot = alpha * (y - y**3 / 3 + x) / (tau * kappa)
+        thdot = omega
+        return xdot, ydot, thdot
+
+    @staticjit
+    def _postprocessing(x, y, th):
+        return x, y, np.sin(th)
+
+    @staticjit
+    def _jac(x, y, th, t, alpha, beta, c3, gamma, k1, kappa, omega, tau):
+        row1 = [0, (-3*c3*y**2 + 1)/(kappa*tau), gamma*k1*np.cos(th)/(kappa*tau)]
+        row2 = [alpha/(kappa*tau), alpha*(1 - y**2)/(kappa*tau), 0]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class IkeuchiTomita(DynSys):
+    @staticjit
+    def _rhs(lx, lw, th, t, a, b, k, omega):
+        # logarithms of the cold (x) and warm (w) phase fractions; hot fraction y = 1 - x - w
+        x = np.exp(lx)
+        w = np.exp(lw)
+        y = 1 - x - w
+        lxdot = a * w * (1 + k * np.cos(th)) / x - b * y**2
+        lwdot = -a * (1 + k * np.cos(th)) + y
+        thdot = omega
+        return lxdot, lwdot, thdot
+
+    @staticjit
+    def _postprocessing(lx, lw, th):
+        return lx, lw, np.sin(th)
+
+    @staticjit
+    def _jac(lx, lw, th, t, a, b, k, omega):
+        row1 = [(-a*(k*np.cos(th) + 1)*np.exp(lw) - 2*b*(np.exp(lw) + np.exp(lx) - 1)*np.exp(2*lx))*np.exp(-lx), (a*(k*np.cos(th) + 1)*np.exp(lw) - 2*b*(np.exp(lw) + np.exp(lx) - 1)*np.exp(lw + lx))*np.exp(-lx), -a*k*np.exp(lw - lx)*np.sin(th)]
+        row2 = [-np.exp(lx), -np.exp(lw), a*k*np.sin(th)]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class InertialFitzHughNagumo(DynSys):
+    @staticjit
+    def _rhs(x, v, y, t, a, eps, k):
+        xdot = v
+        vdot = (y + x - x**3 / 3 - v) / k
+        ydot = -eps * (x - a)
+        return xdot, vdot, ydot
+
+    @staticjit
+    def _jac(x, v, y, t, a, eps, k):
+        row1 = [0, 1, 0]
+        row2 = [(1 - x**2)/k, -1/k, k**(-1.0)]
+        row3 = [-eps, 0, 0]
+        return row1, row2, row3
+
+
+class IntraguildPredation(DynSys):
+    @staticjit
+    def _rhs(rr, c1, c2, t, a1r, a2c, a2r, b1r, b2c, b2r, k0, m1, m2, r, w1r, w2c, w2r):
+        f1 = a1r * rr / (1 + b1r * rr)
+        f2 = a2r * rr / (1 + b2r * rr)
+        g = a2c * c1 / (1 + b2c * c1)
+        rrdot = r * rr * (1 - rr / k0) - f1 * c1 - f2 * c2
+        c1dot = w1r * f1 * c1 - g * c2 - m1 * c1
+        c2dot = w2r * f2 * c2 + w2c * g * c2 - m2 * c2
+        return rrdot, c1dot, c2dot
+
+    @staticjit
+    def _jac(rr, c1, c2, t, a1r, a2c, a2r, b1r, b2c, b2r, k0, m1, m2, r, w1r, w2c, w2r):
+        row1 = [-a1r*c1/(b1r*rr + 1)**2 - a2r*c2/(b2r*rr + 1)**2 + r - 2*r*rr/k0, -a1r*rr/(b1r*rr + 1), -a2r*rr/(b2r*rr + 1)]
+        row2 = [a1r*c1*w1r/(b1r*rr + 1)**2, a1r*rr*w1r/(b1r*rr + 1) + a2c*b2c*c1*c2/(b2c*c1 + 1)**2 - a2c*c2/(b2c*c1 + 1) - m1, -a2c*c1/(b2c*c1 + 1)]
+        row3 = [a2r*c2*w2r/(b2r*rr + 1)**2, a2c*c2*w2c/(b2c*c1 + 1)**2, a2c*c1*w2c/(b2c*c1 + 1) + a2r*rr*w2r/(b2r*rr + 1) - m2]
+        return row1, row2, row3
+
+
+class IteratedPrisonersDilemma(DynSys):
+    @staticjit
+    def _rhs(
+        x2, x3, x4, t,
+        a11, a12, a13, a14, a21, a22, a23, a24, a31, a32, a33, a34, a41, a42, a43, a44, mu,
+    ):
+        x1 = 1 - x2 - x3 - x4
+        p1 = a11 * x1 + a12 * x2 + a13 * x3 + a14 * x4
+        p2 = a21 * x1 + a22 * x2 + a23 * x3 + a24 * x4
+        p3 = a31 * x1 + a32 * x2 + a33 * x3 + a34 * x4
+        p4 = a41 * x1 + a42 * x2 + a43 * x3 + a44 * x4
+        pbar = x1 * p1 + x2 * p2 + x3 * p3 + x4 * p4
+        x2dot = (1 - 4 * mu / 3) * p2 * x2 - pbar * x2 + mu * pbar / 3
+        x3dot = (1 - 4 * mu / 3) * p3 * x3 - pbar * x3 + mu * pbar / 3
+        x4dot = (1 - 4 * mu / 3) * p4 * x4 - pbar * x4 + mu * pbar / 3
+        return x2dot, x3dot, x4dot
+
+    @staticjit
+    def _jac(x2, x3, x4, t, a11, a12, a13, a14, a21, a22, a23, a24, a31, a32, a33, a34, a41, a42, a43, a44, mu,):
+        c0 = -a21 + a22
+        c1 = x3*(-a31 + a32)
+        c2 = x4*(-a41 + a42)
+        c3 = -x2 - x3 - x4 + 1
+        c4 = a21*c3 + a22*x2 + a23*x3 + a24*x4
+        c5 = a11*c3
+        c6 = a12*x2
+        c7 = a13*x3
+        c8 = a14*x4
+        c9 = -c5 - c6 - c7 - c8
+        c10 = c0*x2 + c1 + c2 + c3*(-a11 + a12) + c4 + c9
+        c11 = 1 - 4/3*mu
+        c12 = a31*c3 + a32*x2 + a33*x3 + a34*x4
+        c13 = a41*c3 + a42*x2 + a43*x3 + a44*x4
+        c14 = c12*x3 + c13*x4 + c3*(c5 + c6 + c7 + c8) + c4*x2
+        c15 = x2*(-a21 + a23)
+        c16 = -a31 + a33
+        c17 = x4*(-a41 + a43)
+        c18 = c12 + c15 + c16*x3 + c17 + c3*(-a11 + a13) + c9
+        c19 = (1/3)*mu
+        c20 = c18*c19
+        c21 = x2*(-a21 + a24)
+        c22 = x3*(-a31 + a34)
+        c23 = -a41 + a44
+        c24 = c13 + c21 + c22 + c23*x4 + c3*(-a11 + a14) + c9
+        c25 = c19*c24
+        c26 = c10*c19
+        row1 = [c0*c11*x2 + (1/3)*c10*mu - c10*x2 + c11*c4 - c14, c11*c15 - c18*x2 + c20, c11*c21 - c24*x2 + c25]
+        row2 = [c1*c11 - c10*x3 + c26, c11*c12 + c11*c16*x3 - c14 + (1/3)*c18*mu - c18*x3, c11*c22 - c24*x3 + c25]
+        row3 = [-c10*x4 + c11*c2 + c26, c11*c17 - c18*x4 + c20, c11*c13 + c11*c23*x4 - c14 + (1/3)*c24*mu - c24*x4]
+        return row1, row2, row3
+
+
+class JosephsonRCL(DynSys):
+    @staticjit
+    def _rhs(ph, v, i, t, bc, bl, gn, gsg, i0, vg, w):
+        # quasiparticle conductance steps from gsg to gn at |v| = vg, smoothed over width w
+        g = gsg + (gn - gsg) * 0.5 * (1 + np.tanh((np.abs(v) - vg) / w))
+        phdot = v
+        vdot = (i0 - g * v - np.sin(ph) - i) / bc
+        idot = (v - i) / bl
+        return phdot, vdot, idot
+
+    @staticjit
+    def _postprocessing(ph, v, i):
+        return np.sin(ph), v, i
+
+    @staticjit
+    def _jac(ph, v, i, t, bc, bl, gn, gsg, i0, vg, w):
+        row1 = [0, 1, 0]
+        row2 = [-np.cos(ph)/bc, (-gsg - v*(1 - np.tanh((-vg + abs(v))/w)**2)*(0.5*gn - 0.5*gsg)*np.sign(v)/w - (0.5*gn - 0.5*gsg)*(np.tanh((-vg + abs(v))/w) + 1))/bc, -1/bc]
+        row3 = [0, bl**(-1.0), -1/bl]
+        return row1, row2, row3
+
+
+class KeynesianGrowthCycle(DynSys):
+    @staticjit
+    def _rhs(g, gw, s, t, alpha, beta, cstar, delta, eps, gamma, phi, pibar):
+        gdot = alpha * ((cstar + phi * (g - gw)) * gw - s)
+        gwdot = gamma * (g - gw)
+        sdot = eps * (beta * (pibar - s) * s - gw) + delta * gamma * (g - gw)
+        return gdot, gwdot, sdot
+
+    @staticjit
+    def _jac(g, gw, s, t, alpha, beta, cstar, delta, eps, gamma, phi, pibar):
+        row1 = [alpha*gw*phi, alpha*(cstar - gw*phi + phi*(g - gw)), -alpha]
+        row2 = [gamma, -gamma, 0]
+        row3 = [delta*gamma, -delta*gamma - eps, beta*eps*(pibar - 2*s)]
+        return row1, row2, row3
+
+
+class KlebanoffHastings(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, a1, a12, a2, a21, b1, b2, k, m, p):
+        fx = a1 * x * z / (1 + b1 * x)
+        fy = a2 * y * z / (1 + b2 * y)
+        xdot = x - x**2 - a12 * x * y - fx
+        ydot = p * y - k * y**2 - a21 * x * y - fy
+        zdot = fx + fy - m * z
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, a1, a12, a2, a21, b1, b2, k, m, p):
+        row1 = [-a1*z/(b1*x + 1)**2 - a12*y - 2*x + 1, -a12*x, -a1*x/(b1*x + 1)]
+        row2 = [-a21*y, -a2*z/(b2*y + 1)**2 - a21*x - 2*k*y + p, -a2*y/(b2*y + 1)]
+        row3 = [a1*z/(b1*x + 1)**2, a2*z/(b2*y + 1)**2, a1*x/(b1*x + 1) + a2*y/(b2*y + 1) - m]
+        return row1, row2, row3
+
+
+class KrischerElectrochemical(DynSys):
+    @staticjit
+    def _rhs(phi, c, th, t, bb, eps, mu, phi0, rho, u):
+        k = 0.00002 * phi**3 - 0.0094 * phi**2 + 1.12 * phi
+        th0 = 1.0 / (1.0 + np.exp((phi - phi0) / bb))
+        jf = c * k * (1.0 - th)
+        phidot = (-jf + (u - phi) / rho) / eps
+        cdot = (-jf + 1.0 - c) / mu
+        thdot = th0 - th
+        return phidot, cdot, thdot
+
+    @staticjit
+    def _jac(phi, c, th, t, bb, eps, mu, phi0, rho, u):
+        c0 = eps**(-1.0)
+        c1 = th - 1.0
+        c2 = phi**2
+        c3 = c*c1*(6.000000000000001e-05*c2 - 0.0188*phi + 1.12)
+        c4 = phi*(2e-05*c2 - 0.0094*phi + 1.12)
+        c5 = c1*c4
+        c6 = c*c4
+        c7 = mu**(-1.0)
+        c8 = bb**(-1.0)
+        c9 = np.exp(c8*(phi - phi0))
+        row1 = [c0*(c3*rho - 1)/rho, c0*c5, c0*c6]
+        row2 = [c3*c7, c7*(c5 - 1), c6*c7]
+        row3 = [-1.0*c8*c9/(c9 + 1.0)**2, 0, -1]
+        return row1, row2, row3
+
+
+class LarterBreakspear(DynSys):
+    @staticjit
+    def _rhs(
+        v, w, z, t,
+        aee, aei, aie, ane, ani, b, dca, dk, dna, dv, dz, gca, gk, gl, gna, i, phi, rnmda,
+        tauk, tca, tk, tna, vca, vk, vl, vna, vt, zt,
+    ):
+        mca = 0.5 * (1 + np.tanh((v - tca) / dca))
+        mna = 0.5 * (1 + np.tanh((v - tna) / dna))
+        mk = 0.5 * (1 + np.tanh((v - tk) / dk))
+        qv = 0.5 * (1 + np.tanh((v - vt) / dv))
+        qz = 0.5 * (1 + np.tanh((z - zt) / dz))
+        vdot = (
+            -(gca + rnmda * aee * qv) * mca * (v - vca)
+            - gk * w * (v - vk)
+            - gl * (v - vl)
+            - (gna * mna + aee * qv) * (v - vna)
+            - aie * z * qz
+            + ane * i
+        )
+        wdot = phi * (mk - w) / tauk
+        zdot = b * (ani * i + aei * v * qv)
+        return vdot, wdot, zdot
+
+    @staticjit
+    def _jac(v, w, z, t, aee, aei, aie, ane, ani, b, dca, dk, dna, dv, dz, gca, gk, gl, gna, i, phi, rnmda, tauk, tca, tk, tna, vca, vk, vl, vna, vt, zt,):
+        c0 = dv**(-1.0)
+        c1 = c0*(v - vt)
+        c2 = np.tanh(c1)
+        c3 = aee*(0.5*c2 + 0.5)
+        c4 = dna**(-1.0)
+        c5 = -v
+        c6 = np.tanh(c4*(-c5 - tna))
+        c7 = 0.5*c0
+        c8 = aee*c7*(1 - c2**2)
+        c9 = dca**(-1.0)
+        c10 = np.tanh(c9*(-c5 - tca))
+        c11 = 0.5*c10 + 0.5
+        c12 = -c3*rnmda - gca
+        c13 = v - vca
+        c14 = dz**(-1.0)
+        c15 = c14*(z - zt)
+        c16 = dk**(-1.0)
+        c17 = phi/tauk
+        row1 = [c11*c12 - c11*c13*c8*rnmda + 0.5*c12*c13*c9*(1 - c10**2) - c3 - gk*w - gl - gna*(0.5*c6 + 0.5) - (v - vna)*(0.5*c4*gna*(1 - c6**2) + c8), gk*(-v + vk), -0.5*aie*c14*(dz*(np.tanh(c15) + 1) + z/np.cosh(c15)**2)]
+        row2 = [0.5*c16*c17/np.cosh(c16*(c5 + tk))**2, -c17, 0]
+        row3 = [aei*b*c7*(dv*(c2 + 1) + v/np.cosh(c1)**2), 0, 0]
+        return row1, row2, row3
+
+
+class Malasoma(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, a):
+        xdot = y
+        ydot = z
+        zdot = -a * z + x * y**2 - x
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, a):
+        row1 = [0, 1, 0]
+        row2 = [0, 0, 1]
+        row3 = [y**2 - 1, 2*x*y, -a]
+        return row1, row2, row3
+
+
+class MankinHudson(DynSys):
+    @staticjit
+    def _rhs(c, temp, th, t, a, b, beta, da, omega, tc):
+        rate = da * (1 - c) * np.exp(temp)
+        cdot = -c + rate
+        tempdot = -temp + b * rate - beta * (temp - tc - a * np.sin(th))
+        thdot = omega
+        return cdot, tempdot, thdot
+
+    @staticjit
+    def _postprocessing(c, temp, th):
+        return c, temp, np.sin(th)
+
+    @staticjit
+    def _jac(c, temp, th, t, a, b, beta, da, omega, tc):
+        row1 = [-da*np.exp(temp) - 1, da*(1 - c)*np.exp(temp), 0]
+        row2 = [-b*da*np.exp(temp), -b*da*(c - 1)*np.exp(temp) - beta - 1, a*beta*np.cos(th)]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class MarhlCalcium(DynSys):
+    @staticjit
+    def _rhs(
+        cac, caer, cam, t,
+        beta_er, beta_m, catot, k1, k2, kch, kin, kleak, kminus, kmm, kout, kplus, kpump,
+        prtot, rho_er, rho_m,
+    ):
+        jch = kch * cac**2 / (k1**2 + cac**2) * (caer - cac)
+        jleak = kleak * (caer - cac)
+        jpump = kpump * cac
+        jin = kin * cac**8 / (k2**8 + cac**8)
+        jout = (kout * cac**2 / (k1**2 + cac**2) + kmm) * cam
+        capr = catot - cac - (rho_er / beta_er) * caer - (rho_m / beta_m) * cam
+        pr = prtot - capr
+        cacdot = jch + jleak - jpump + jout - jin + kminus * capr - kplus * cac * pr
+        caerdot = (beta_er / rho_er) * (jpump - jch - jleak)
+        camdot = (beta_m / rho_m) * (jin - jout)
+        return cacdot, caerdot, camdot
+
+    @staticjit
+    def _jac(cac, caer, cam, t, beta_er, beta_m, catot, k1, k2, kch, kin, kleak, kminus, kmm, kout, kplus, kpump, prtot, rho_er, rho_m,):
+        c0 = cac**2
+        c1 = k1**2
+        c2 = c0 + c1
+        c3 = c2**(-1.0)
+        c4 = c0*c3
+        c5 = c4*kch
+        c6 = cac*kplus
+        c7 = rho_er/beta_er
+        c8 = rho_m/beta_m
+        c9 = 2*kout
+        c10 = cac**3
+        c11 = c2**2
+        c12 = c11**(-1.0)
+        c13 = c10*c12
+        c14 = k2**8
+        c15 = c14 + cac**8
+        c16 = c15**(-2.0)
+        c17 = 8*cac**7*kin
+        c18 = cac - caer
+        c19 = -c18
+        c20 = 2*kch
+        c21 = kleak + kpump
+        c22 = c5 + kleak
+        c23 = c4*kout + kmm
+        c24 = beta_er/rho_er
+        c25 = beta_m/rho_m
+        row1 = [-c13*c19*c20 + 8*c16*cac**15*kin + 2*c19*c3*cac*kch - c21 - c5 - c6 + cam*(-c13*c9 + 2*c3*cac*kout) - kminus - kplus*(c7*caer + c8*cam + cac - catot + prtot) - c17/c15, c22 - c6*c7 - c7*kminus, c23 - c6*c8 - c8*kminus]
+        row2 = [c12*c24*(-c10*c18*c20 + c11*c21 + c2*cac*kch*(3*cac - 2*caer)), -c22*c24, 0]
+        row3 = [-c1*c12*c25*c9*cac*cam + c14*c16*c17*c25, 0, -c23*c25]
+        return row1, row2, row3
+
+
+class NMRFeedbackBloch(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, c, d, g, g1, g2):
+        xdot = d * y + g * z * (x * np.sin(c) - y * np.cos(c)) - x / g2
+        ydot = -d * x - z + g * z * (x * np.cos(c) + y * np.sin(c)) - y / g2
+        zdot = y - g * np.sin(c) * (x**2 + y**2) - (z - 1) / g1
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, c, d, g, g1, g2):
+        row1 = [g*z*np.sin(c) - 1/g2, d - g*z*np.cos(c), g*(x*np.sin(c) - y*np.cos(c))]
+        row2 = [-d + g*z*np.cos(c), g*z*np.sin(c) - 1/g2, g*(x*np.cos(c) + y*np.sin(c)) - 1]
+        row3 = [-2*g*x*np.sin(c), -2*g*y*np.sin(c) + 1, -1/g1]
+        return row1, row2, row3
+
+
+class NaPKKMBurster(DynSys):
+    @staticjit
+    def _rhs(v, n, w, t, am, an, aw, bm, bn, bw, ek, el, ena, gk, gkm, gl, gna, i, taun, tauw):
+        minf = 1 / (1 + np.exp((am - v) / bm))
+        ninf = 1 / (1 + np.exp((an - v) / bn))
+        winf = 1 / (1 + np.exp((aw - v) / bw))
+        vdot = (
+            -gna * minf * (v - ena)
+            - gk * n * (v - ek)
+            - gkm * w * (v - ek)
+            - gl * (v - el)
+            + i
+        )
+        ndot = (ninf - n) / taun
+        wdot = (winf - w) / tauw
+        return vdot, ndot, wdot
+
+    @staticjit
+    def _jac(v, n, w, t, am, an, aw, bm, bn, bw, ek, el, ena, gk, gkm, gl, gna, i, taun, tauw):
+        row1 = [-gk*n - gkm*w - gl - gna/(np.exp((am - v)/bm) + 1) - gna*(-ena + v)*np.exp((am - v)/bm)/(bm*(np.exp((am - v)/bm) + 1)**2), gk*(ek - v), gkm*(ek - v)]
+        row2 = [(1/4)/(bn*taun*np.cosh((1/2)*(an - v)/bn)**2), -1/taun, 0]
+        row3 = [(1/4)/(bw*tauw*np.cosh((1/2)*(aw - v)/bw)**2), 0, -1/tauw]
+        return row1, row2, row3
+
+
+class ParallelAutocatalator(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, ax, ay, dax, day, daz):
+        rx = dax * x * z**2
+        ry = day * y * z**2
+        xdot = 1 - x - rx
+        ydot = 1 - y - ry
+        zdot = 1 - (1 + daz) * z + ax * rx + ay * ry
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, ax, ay, dax, day, daz):
+        row1 = [-dax*z**2 - 1, 0, -2*dax*x*z]
+        row2 = [0, -day*z**2 - 1, -2*day*y*z]
+        row3 = [ax*dax*z**2, ay*day*z**2, 2*ax*dax*x*z + 2*ay*day*y*z - daz - 1]
+        return row1, row2, row3
+
+
+class ParallelReactionCSTR(DynSys):
+    @staticjit
+    def _rhs(y, z, temp, t, a, b1, b2, da1, da2, g1, g2):
+        r1 = da1 * y * np.exp(g1 * temp / (1 + temp))
+        r2 = da2 * z * np.exp(g2 * temp / (1 + temp))
+        ydot = 1 - y - r1
+        zdot = 1 - z - r2
+        tempdot = a * (b1 * r1 + b2 * r2 - temp)
+        return ydot, zdot, tempdot
+
+    @staticjit
+    def _jac(y, z, temp, t, a, b1, b2, da1, da2, g1, g2):
+        row1 = [-da1*np.exp(g1*temp/(temp + 1)) - 1, 0, -da1*g1*y*np.exp(g1*temp/(temp + 1))/(temp + 1)**2]
+        row2 = [0, -da2*np.exp(g2*temp/(temp + 1)) - 1, -da2*g2*z*np.exp(g2*temp/(temp + 1))/(temp + 1)**2]
+        row3 = [a*b1*da1*np.exp(g1*temp/(temp + 1)), a*b2*da2*np.exp(g2*temp/(temp + 1)), a*(b1*da1*g1*y*np.exp(g1*temp/(temp + 1)) + b2*da2*g2*z*np.exp(g2*temp/(temp + 1)) - (temp + 1)**2)/(temp + 1)**2]
+        return row1, row2, row3
+
+
+class PendularCavity(DynSys):
+    @staticjit
+    def _rhs(ph, dph, th, t, alpha, beta, d0, eb, q):
+        lor = 1.0 / (1 + (d0 + ph + th) ** 2)
+        phdot = dph
+        dphdot = -dph / q - ph + alpha * lor
+        thdot = -eb * (th + beta * lor)
+        return phdot, dphdot, thdot
+
+    @staticjit
+    def _jac(ph, dph, th, t, alpha, beta, d0, eb, q):
+        row1 = [0, 1, 0]
+        row2 = [1.0*alpha*(-2*d0 - 2*ph - 2*th)/((d0 + ph + th)**2 + 1)**2 - 1, -1/q, -2.0*alpha*(d0 + ph + th)/((d0 + ph + th)**2 + 1)**2]
+        row3 = [2.0*beta*eb*(d0 + ph + th)/((d0 + ph + th)**2 + 1)**2, 0, -eb*(1.0*beta*(-2*d0 - 2*ph - 2*th)/((d0 + ph + th)**2 + 1)**2 + 1)]
+        return row1, row2, row3
+
+
+class PikovskyRabinovich(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, alpha, beta, delta, gamma, mu):
+        xdot = y - delta * z
+        ydot = -x + 2 * gamma * y + alpha * z + beta
+        zdot = (x - z**3 + z) / mu
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, alpha, beta, delta, gamma, mu):
+        row1 = [0, 1, -delta]
+        row2 = [-1, 2*gamma, alpha]
+        row3 = [mu**(-1.0), 0, (1 - 3*z**2)/mu]
+        return row1, row2, row3
+
+
+class QIFAdaptation(DynSys):
+    @staticjit
+    def _rhs(r, v, a, t, beta, delta, eta, j, taua):
+        rdot = delta / (np.pi * (1 + beta)) + 2 * r * v
+        vdot = v**2 - (np.pi * r) ** 2 + eta + j * r - a
+        adot = (-(1 + beta) * a + beta * (eta + j * r)) / taua
+        return rdot, vdot, adot
+
+    @staticjit
+    def _jac(r, v, a, t, beta, delta, eta, j, taua):
+        row1 = [2*v, 2*r, 0]
+        row2 = [j - 2*np.pi**2*r, 2*v, -1]
+        row3 = [beta*j/taua, 0, (-beta - 1)/taua]
+        return row1, row2, row3
+
+
+class RayleighDuffing(DynSys):
+    @staticjit
+    def _rhs(x, y, th, t, a, gamma, mu, omega):
+        xdot = y
+        ydot = mu * (1 - gamma * y**2) * y - x**3 + a * np.sin(th)
+        thdot = omega
+        return xdot, ydot, thdot
+
+    @staticjit
+    def _postprocessing(x, y, th):
+        return x, y, np.sin(th)
+
+    @staticjit
+    def _jac(x, y, th, t, a, gamma, mu, omega):
+        row1 = [0, 1, 0]
+        row2 = [-3*x**2, mu*(-3*gamma*y**2 + 1), a*np.cos(th)]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class RfSquid(DynSys):
+    @staticjit
+    def _rhs(x, v, th, t, beta, gamma, omega, phiac, phidc):
+        xdot = v
+        vdot = (
+            -gamma * v - x - beta * np.sin(2 * np.pi * x) + phidc + phiac * np.cos(th)
+        )
+        thdot = omega
+        return xdot, vdot, thdot
+
+    @staticjit
+    def _postprocessing(x, v, th):
+        return x, v, np.sin(th)
+
+    @staticjit
+    def _jac(x, v, th, t, beta, gamma, omega, phiac, phidc):
+        row1 = [0, 1, 0]
+        row2 = [-2*np.pi*beta*np.cos(2*np.pi*x) - 1, -gamma, -phiac*np.sin(th)]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class SchefferDaphnia(DynSys):
+    @staticjit
+    def _rhs(a, z, th, t, d, e, eps, f, g, ha, hz, k, m, omega, r):
+        s = (1 - eps * np.cos(th)) / (1 + eps)
+        gr = g * a / (a + ha)
+        adot = s * r * a * (1 - a / (s * k)) - z * s * gr + d * (s * k - a)
+        zdot = e * s * gr * z - s * m * z - s**2 * f * z**2 / (z**2 + hz**2)
+        thdot = omega
+        return adot, zdot, thdot
+
+    @staticjit
+    def _postprocessing(a, z, th):
+        return a, z, np.sin(th)
+
+    @staticjit
+    def _jac(a, z, th, t, d, e, eps, f, g, ha, hz, k, m, omega, r):
+        c0 = k**(-1.0)
+        c1 = a*r
+        c2 = eps + 1
+        c3 = c2**(-1.0)
+        c4 = eps*np.cos(th) - 1
+        c5 = -c4
+        c6 = g*z
+        c7 = a + ha
+        c8 = c7**(-1.0)
+        c9 = c3*c5
+        c10 = c8*c9
+        c11 = c7**(-2.0)
+        c12 = a*g
+        c13 = c3*c4
+        c14 = d*k
+        c15 = np.sin(th)
+        c16 = c15*eps
+        c17 = z**2
+        c18 = c17 + hz**2
+        c19 = c18**(-1.0)
+        c20 = c2**(-2.0)
+        c21 = 2*c20*c5**2*f
+        row1 = [a*c11*c3*c5*g*z - c0*c1 - c10*c6 + c3*c5*r*(-a*c0*c2/c5 + 1) - d, c12*c13*c8, c16*(a**2*r + a*c14 - a*c6 + c1*ha + c14*ha)/(a*eps + c7 + eps*ha)]
+        row2 = [-c11*c13*c6*e*ha, c10*c12*e - c19*c21*z - c9*m + c21*z**3/c18**2, a*c15*c3*c8*e*eps*g*z - 2*c16*c17*c19*c20*c5*f - c16*c3*m*z]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class SeasonalSIR(DynSys):
+    @staticjit
+    def _rhs(s, li, th, t, b0, b1, gamma, mu, omega):
+        # susceptible fraction, log of the infected fraction, seasonal phase
+        beta = b0 * (1 + b1 * np.sin(th))
+        sdot = mu - beta * s * np.exp(li) - mu * s
+        lidot = beta * s - (gamma + mu)
+        thdot = omega
+        return sdot, lidot, thdot
+
+    @staticjit
+    def _postprocessing(s, li, th):
+        return s, li, np.sin(th)
+
+    @staticjit
+    def _jac(s, li, th, t, b0, b1, gamma, mu, omega):
+        row1 = [-b0*b1*np.exp(li)*np.sin(th) - b0*np.exp(li) - mu, -b0*s*(b1*np.sin(th) + 1)*np.exp(li), -b0*b1*s*np.exp(li)*np.cos(th)]
+        row2 = [b0*(b1*np.sin(th) + 1), 0, b0*b1*s*np.cos(th)]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class ShenLarter(DynSys):
+    @staticjit
+    def _rhs(
+        c, e, p, t,
+        k1, k2, k3, k4, k5, kch, kin1, kin2, kleak, kminus, kout, kplus, kpump, r,
+    ):
+        jch = kch * p**4 / (p**4 + k1**4) * (k4 * c / ((c + k4) * (c + k5))) ** 3 * e
+        jleak = kleak * e
+        jpump = kpump * c**2 / (c**2 + k2**2)
+        jin = kin1 * r + kin2
+        jout = kout * c
+        cdot = jch + jleak - jpump + jin - jout
+        edot = jpump - jch - jleak
+        pdot = kplus * r * c / (c + k3) - kminus * p
+        return cdot, edot, pdot
+
+    @staticjit
+    def _jac(c, e, p, t, k1, k2, k3, k4, k5, kch, kin1, kin2, kleak, kminus, kout, kplus, kpump, r,):
+        c0 = c**3
+        c1 = c**2
+        c2 = c1 + k2**2
+        c3 = 2*kpump
+        c4 = k4**3
+        c5 = c + k4
+        c6 = c5**(-3.0)
+        c7 = c + k5
+        c8 = c7**(-3.0)
+        c9 = p**4
+        c10 = k1**4
+        c11 = c10 + c9
+        c12 = c9/c11
+        c13 = 3*c0*c12*c4*e*kch
+        c14 = c*c3/c2 - c0*c3/c2**2 - 3*c1*c12*c4*c6*c8*e*kch + c13*c6/c7**4 + c13*c8/c5**4
+        c15 = c0*c4*c6*c8*kch
+        c16 = c12*c15 + kleak
+        c17 = 4*c10*c15*e*p**3/c11**2
+        row1 = [-c14 - kout, c16, c17]
+        row2 = [c14, -c16, -c17]
+        row3 = [k3*kplus*r/(c + k3)**2, 0, -kminus]
+        return row1, row2, row3
+
+
+class SpinValveOscillator(DynSys):
+    @staticjit
+    def _rhs(th, ph, ps, t, aac, aj, alpha, h, omega):
+        st = np.sin(th)
+        ct = np.cos(th)
+        sp = np.sin(ph)
+        cp = np.cos(ph)
+        mx = st * cp
+        my = st * sp
+        mz = ct
+        a = aj + aac * np.cos(ps)
+        t1 = my * mz - a * (my**2 + mz**2)
+        t2 = -mz * (h + mx) + a * mx * my
+        t3 = my * h + a * mx * mz
+        m1 = (t1 + alpha * (my * t3 - mz * t2)) / (1 + alpha**2)
+        m2 = (t2 + alpha * (mz * t1 - mx * t3)) / (1 + alpha**2)
+        m3 = (t3 + alpha * (mx * t2 - my * t1)) / (1 + alpha**2)
+        thdot = m1 * ct * cp + m2 * ct * sp - m3 * st
+        phdot = (-m1 * sp + m2 * cp) / st
+        psdot = omega
+        return thdot, phdot, psdot
+
+    @staticjit
+    def _postprocessing(th, ph, ps):
+        return th, np.sin(ph), np.sin(ps)
+
+    @staticjit
+    def _jac(th, ph, ps, t, aac, aj, alpha, h, omega):
+        c0 = np.cos(ph)
+        c1 = np.sin(th)
+        c2 = c0*c1
+        c3 = c2 + h
+        c4 = np.cos(th)
+        c5 = c3*c4
+        c6 = c1**2
+        c7 = aac*np.cos(ps) + aj
+        c8 = np.sin(ph)
+        c9 = c0*c6*c7*c8 - c5
+        c10 = c4**2
+        c11 = c8**2
+        c12 = c11*c6
+        c13 = c10 + c12
+        c14 = c13*c7
+        c15 = c1*c4*c8 - c14
+        c16 = c1*c15
+        c17 = c1*c8
+        c18 = c2*c4
+        c19 = c17*h + c18*c7
+        c20 = (alpha**2 + 1)**(-1.0)
+        c21 = c20*c4
+        c22 = c4*c9
+        c23 = c0*c10
+        c24 = 2*c4
+        c25 = c1*c3 + c2*c24*c7*c8 - c23
+        c26 = c15*c4
+        c27 = c6*c8
+        c28 = c1*c24
+        c29 = c7*(c11*c28 - c28)
+        c30 = c10*c8 - c27 - c29
+        c31 = c4*c8
+        c32 = c6*c7
+        c33 = -c0*c32 + c23*c7 + c31*h
+        c34 = c1*c20
+        c35 = c19*c2
+        c36 = c0*c27
+        c37 = c36*c7
+        c38 = alpha*(c26 - c35) + c37 - c5
+        c39 = c17*c4
+        c40 = alpha*(c1*c19*c8 - c22) - c14 + c39
+        c41 = c1*c9
+        c42 = alpha*(c17*c33 + c19*c31 - c25*c4 + c41) + c10*c8 - c27 - c29
+        c43 = c0*c4
+        c44 = alpha*(-c16 - c19*c43 - c2*c33 + c30*c4) + c25
+        c45 = 2*c37
+        c46 = c0*c1*c4 - c45
+        c47 = c0**2
+        c48 = -c12*c7 + c32*c47 + c39
+        c49 = c2*h - c39*c7
+        c50 = c0*c21
+        c51 = alpha*(c17*c49 + c35 - c4*c48) + c18 - c45
+        c52 = alpha*(c17*c19 - c2*c49 + c4*c46) + c48
+        c53 = c21*c8
+        c54 = aac*np.sin(ps)
+        c55 = c47*c54
+        c56 = c13*c54
+        c57 = c1**(-1.0)
+        c58 = c20*c8
+        row1 = [c0*c20*c4*c42 - c17*c20*c38 - c2*c20*c40 + c20*c4*c44*c8 - c21*(alpha*(-c16*c8 + c2*c9) + c19) - c34*(alpha*(c0*c22 - c17*c30 + c2*c25 - c26*c8) + c33), -c34*(alpha*(c0*c1*c48 - c15*c2 - c17*c46 - c41*c8) + c49) + c38*c50 - c40*c53 + c50*c51 + c52*c53, -c34*(alpha*(-c1**3*c55*c8 - c17*c56) - c18*c54) + c50*c56 + c53*(alpha*(c4*c55*c6 + c4*c56) - c36*c54)]
+        row2 = [-c4*(c0*c20*c38 - c40*c58)/c6 + c57*(c0*c20*c44 - c42*c58), c57*(-c0*c20*c40 + c0*c20*c52 - c38*c58 - c51*c58), c20*c54*c57*(alpha*c43 - c8)]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class StokesDrop(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, alpha, theta, wmag):
+        e11 = 1.0 / (1.0 + alpha)
+        e22 = alpha / (1.0 + alpha)
+        e33 = -1.0
+        wx = wmag * np.sin(theta)
+        wz = wmag * np.cos(theta)
+        r2 = x**2 + y**2 + z**2
+        xex = e11 * x**2 + e22 * y**2 + e33 * z**2
+        c = 5.0 * r2 - 3.0
+        xdot = 0.5 * (c * e11 * x - 2 * x * xex) - 0.5 * wz * y
+        ydot = 0.5 * (c * e22 * y - 2 * y * xex) + 0.5 * (wz * x - wx * z)
+        zdot = 0.5 * (c * e33 * z - 2 * z * xex) + 0.5 * wx * y
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, alpha, theta, wmag):
+        c0 = z**2
+        c1 = 3.5*c0
+        c2 = x**2
+        c3 = 1.0*c0
+        c4 = y**2
+        c5 = alpha*c4
+        c6 = 1.0*c5
+        c7 = 2.5*c4 - 1.5
+        c8 = 1.0/(alpha + 1)
+        c9 = alpha + 1.0
+        c10 = c9**(-1.0)
+        c11 = 0.5*wmag
+        c12 = c11*c9*np.cos(theta)
+        c13 = 2.0*alpha
+        c14 = x*y
+        c15 = c10*x*z
+        c16 = 5.0*alpha
+        c17 = 1.0*c2
+        c18 = 2.5*c2
+        c19 = y*z
+        c20 = -c11*np.sin(theta)
+        c21 = c10*c19
+        row1 = [c8*(alpha*c3 + c1 + 4.5*c2 - c6 + c7), c10*(-c12 - c13*c14 + 5.0*x*y), c15*(c13 + 7.0)]
+        row2 = [c10*(c12 + c14*c16 - 2.0*c14), c8*(alpha*c1 + alpha*c18 - 1.5*alpha - c17 + c3 + 4.5*c5), c16*c21 + 2.0*c19 + c20]
+        row3 = [c15*(-c16 - 7.0), -c13*c21 - 5.0*c19 - c20, c10*(-c17 - c6 + c9*(-4.5*c0 - c18 - c7))]
+        return row1, row2, row3
+
+
+class StretchTwistFold(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, alpha, beta):
+        xdot = alpha * z - 8 * x * y
+        ydot = 11 * x**2 + 3 * y**2 + z**2 + beta * x * z - 3
+        zdot = -alpha * x + 2 * y * z - beta * x * y
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, alpha, beta):
+        row1 = [-8*y, -8*x, alpha]
+        row2 = [beta*z + 22*x, 6*y, beta*x + 2*z]
+        row3 = [-alpha - beta*y, -beta*x + 2*z, 2*y]
+        return row1, row2, row3
+
+
+class SugunaSinha(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, k, l, n, q, vmax):
+        g = vmax * y * (1 + y) * (1 + z) ** 2 / (l + (1 + y) ** 2 * (1 + z) ** 2)
+        xdot = 1 / (1 + z**n) - k * x
+        ydot = x - g
+        zdot = g - q * z
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, k, l, n, q, vmax):
+        c0 = 2*y
+        c1 = y + 1
+        c2 = z + 1
+        c3 = c2**2
+        c4 = c1**2*c3
+        c5 = c4 + l
+        c6 = c0*c4 - c5*(c0 + 1)
+        c7 = vmax/c5**2
+        c8 = c3*c7
+        c9 = 2*z + 2
+        row1 = [-k, 0, -n*z**(n - 1)/(z**n + 1)**2]
+        row2 = [1, c6*c8, -c0*c1*c2*c7*l]
+        row3 = [0, -c6*c8, -c1**3*c8*c9*y + c1*c9*vmax*y/c5 - q]
+        return row1, row2, row3
+
+
+class SymmetricGyro(DynSys):
+    @staticjit
+    def _rhs(x, v, th, t, a2, b, c1, c2, f, omega):
+        # (1 - cos x)^2 / sin^3 x, written in a form that is regular at x = 0
+        gyro = 0.5 * np.tan(x / 2) / np.cos(x / 2) ** 2
+        xdot = v
+        vdot = -a2 * gyro - c1 * v - c2 * v**3 + (b + f * np.sin(th)) * np.sin(x)
+        thdot = omega
+        return xdot, vdot, thdot
+
+    @staticjit
+    def _postprocessing(x, v, th):
+        return x, v, np.sin(th)
+
+    @staticjit
+    def _jac(x, v, th, t, a2, b, c1, c2, f, omega):
+        row1 = [0, 1, 0]
+        row2 = [-0.5*a2*np.sin((1/2)*x)*np.tan((1/2)*x)/np.cos((1/2)*x)**3 - 0.25*a2/np.cos((1/2)*x)**4 + b*np.cos(x) + f*np.sin(th)*np.cos(x), -c1 - 3*c2*v**2, f*np.sin(x)*np.cos(th)]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class ThreeWaveDecay(DynSys):
+    @staticjit
+    def _rhs(x, y, s, t, delta, nu1, nu2):
+        # x + i y = a1 exp(i Phi); s = log of the daughter-wave energy
+        xdot = nu1 * x + delta * y + np.exp(s) - 2 * y**2
+        ydot = nu1 * y - delta * x + 2 * x * y
+        sdot = 2 * (nu2 - x)
+        return xdot, ydot, sdot
+
+    @staticjit
+    def _jac(x, y, s, t, delta, nu1, nu2):
+        row1 = [nu1, delta - 4*y, np.exp(s)]
+        row2 = [-delta + 2*y, nu1 + 2*x, 0]
+        row3 = [-2, 0, 0]
+        return row1, row2, row3
+
+
+class TwoWaveParticle(DynSys):
+    @staticjit
+    def _rhs(x, v, tau, t, b, eps, k):
+        xdot = v
+        vdot = -eps * (np.sin(x) + b * k * np.sin(k * (x - tau)))
+        taudot = 1.0
+        return xdot, vdot, taudot
+
+    @staticjit
+    def _postprocessing(x, v, tau):
+        return np.sin(x), v, np.sin(tau)
+
+    @staticjit
+    def _jac(x, v, tau, t, b, eps, k):
+        row1 = [0, 1, 0]
+        row2 = [-eps*(b*k**2*np.cos(k*(tau - x)) + np.cos(x)), 0, b*eps*k**2*np.cos(k*(tau - x))]
+        row3 = [0, 0, 0]
+        return row1, row2, row3
+
+
+class WattGovernor(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, c, f, k, r):
+        xdot = y
+        ydot = r * z**2 * np.sin(x) * np.cos(x) - np.sin(x) - c * y
+        zdot = k * np.cos(x) - f
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, c, f, k, r):
+        row1 = [0, 1, 0]
+        row2 = [-2*r*z**2*np.sin(x)**2 + r*z**2 - np.cos(x), -c, r*z*np.sin(2*x)]
+        row3 = [-k*np.sin(x), 0, 0]
+        return row1, row2, row3
+
+
+class WienBridge(DynSys):
+    @staticjit
+    def _rhs(x, y, z, t, al, be, c, k):
+        g = -x + (k - 1) * y - z
+        nz = al * z + (be - al) * np.maximum(z - 1, 0.0)
+        xdot = g
+        ydot = g - y
+        zdot = c * (g - nz)
+        return xdot, ydot, zdot
+
+    @staticjit
+    def _jac(x, y, z, t, al, be, c, k):
+        dnz = al + (be - al) * 0.5 * (1 + np.sign(z - 1))
+        row1 = [-1, k - 1, -1]
+        row2 = [-1, k - 2, -1]
+        row3 = [-c, c * (k - 1), -c * (1 + dnz)]
+        return row1, row2, row3
+
+
 ## Deprecated names, resolved lazily so they never appear in dir(dysts.flows) and
 ## are not counted twice by dysts.systems.get_attractor_list
 _DEPRECATED_ALIASES = {"Aizawa": "Langford"}
