@@ -30,7 +30,7 @@ try:
     from importlib.metadata import version as _pkg_version
     release = _pkg_version("dysts")
 except Exception:
-    release = "0.99"
+    release = "1.0"
 version = release
 
 # -- General configuration ---------------------------------------------------

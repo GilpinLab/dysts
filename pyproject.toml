@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "dysts"
-version = "0.99"
+version = "1.0"
 description = "More than 220 strange attractors"
 readme = "README.md"
 requires-python = ">=3.10"
