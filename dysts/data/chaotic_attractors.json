@@ -1504,28 +1504,36 @@
   "CircadianRhythm": {
     "bifurcation_parameter": null,
     "citation": " Leloup, Gonze, Goldbeter. 1999. Gonze, Leloup, Goldbeter. 2000",
-    "correlation_dimension": 1.6328881174569194,
+    "doi": "10.1016/b978-012088786-6/50032-0",
+    "correlation_dimension": 2.251964466469735,
     "description": "The Drosophila circadian rhythm under periodic light/dark forcing.",
-    "dt": 0.005400900150025336,
+    "dt": 0.0028002272727272737,
     "embedding_dimension": 5,
     "hamiltonian": false,
     "initial_conditions": [
-      1.5401187,
-      5.3707921,
-      41.054266,
-      11.619073,
-      2004.0233
+      5.677104539807012,
+      8.647336776353583,
+      3.494049503849034,
+      4.7901464826052225,
+      23209.773711731774
     ],
-    "kaplan_yorke_dimension": 2.640554412377753,
+    "kaplan_yorke_dimension": 2.276469273174088,
     "lyapunov_spectrum_estimated": [
-      0.09298369588063138,
-      0.00046501992305171574,
-      -0.14586025062784352,
-      -0.3598453092044599,
-      -1.091393481159416
+      0.024616262314891165,
+      0.0,
+      -0.08903796806161071,
+      -1.144343097132103,
+      -1.5771052019428915
     ],
-    "maximum_lyapunov_estimated": 0.006263277393890506,
-    "multiscale_entropy": 0.7054585345031309,
+    "maximum_lyapunov_estimated": 0.024616262314891165,
+    "mean": [
+      3.632175564816374,
+      4.925139178168825,
+      1.1582698354190135,
+      2.0416409032530147,
+      -0.0005465722780356747
+    ],
+    "multiscale_entropy": 0.8263005271680143,
     "nonautonomous": true,
     "parameters": {
       "Ki": 1,
@@ -1542,29 +1550,21 @@
       "vd": 6,
       "vdn": 1.5,
       "vm": 0.7,
-      "vmax": 4.7,
-      "vmin": 1.0
+      "vmax": 2.75,
+      "vmin": 0.1
     },
-    "period": 27.0,
-    "pesin_entropy": 0.09372724379002938,
+    "period": 14.001136363636368,
+    "pesin_entropy": 0.024616262314891165,
+    "std": [
+      1.5996826480244555,
+      1.8421870563748162,
+      0.7717175226174384,
+      1.2923971851318545,
+      0.707495599996387
+    ],
     "unbounded_indices": [
       4
-    ],
-    "mean": [
-      6.307560228615648,
-      9.791640872680473,
-      17.656473235794465,
-      10.253122019455164,
-      0.01830243449908361
-    ],
-    "std": [
-      4.549114840939406,
-      5.501810843190874,
-      12.409201408372734,
-      5.696794849052108,
-      0.7093377104690279
-    ],
-    "doi": "10.1016/b978-012088786-6/50032-0"
+    ]
   },
   "CoevolvingPredatorPrey": {
     "bifurcation_parameter": null,
@@ -1939,24 +1939,30 @@
   "DequanLi": {
     "bifurcation_parameter": null,
     "citation": "Li, Phys Lett A. 2008: 387-393.",
-    "correlation_dimension": 1.9326161168463631,
+    "doi": "10.1016/j.physleta.2007.07.045",
+    "correlation_dimension": 1.9294074540245751,
     "description": "Related to the Three Scroll unified attractor TSUCS-2",
-    "dt": 1.6763993998996084e-05,
+    "dt": 1.7080038474898685e-05,
     "embedding_dimension": 3,
     "hamiltonian": false,
     "initial_conditions": [
-      -11.395722,
-      -104.12614,
-      202.46173
+      6.719197123219998,
+      5.505335615249671,
+      139.24501598840266
     ],
-    "kaplan_yorke_dimension": 2.6848604732863537,
+    "kaplan_yorke_dimension": 2.699721725933977,
     "lyapunov_spectrum_estimated": [
-      1.8601963396884453,
-      0.09866428540326228,
-      -2.867185439620747
+      1.6512663673911117,
+      0.00666322001034611,
+      -2.3694127621783934
     ],
-    "maximum_lyapunov_estimated": 0.739747976641268,
-    "multiscale_entropy": 0.8319369667525882,
+    "maximum_lyapunov_estimated": 1.6512663673911117,
+    "mean": [
+      -7.698222901361277,
+      -5.527253596217968,
+      111.50932817776247
+    ],
+    "multiscale_entropy": 0.6236072301131375,
     "nonautonomous": false,
     "parameters": {
       "a": 40,
@@ -1964,22 +1970,16 @@
       "d": 0.16,
       "eps": 0.65,
       "f": 20,
-      "k": 55
+      "k": 65.0
     },
-    "period": 0.083806,
-    "pesin_entropy": 1.9588606250917073,
-    "unbounded_indices": [],
-    "mean": [
-      -46.344113998222795,
-      -32.21337179307152,
-      75.83830384057951
-    ],
+    "period": 0.08540019237449342,
+    "pesin_entropy": 1.6579295874014577,
     "std": [
-      50.215839941958684,
-      70.53422386678707,
-      66.56693684577797
+      82.20998547649783,
+      75.93210848855367,
+      76.68484818142298
     ],
-    "doi": "10.1016/j.physleta.2007.07.045"
+    "unbounded_indices": []
   },
   "DoubleGyre": {
     "bifurcation_parameter": null,
@@ -2596,49 +2596,49 @@
   },
   "ForcedFitzHughNagumo": {
     "bifurcation_parameter": null,
-    "citation": "FitzHugh, Richard (1961). Impulses and Physiological States in Theoretical Models of Nerve Membrane. Biophysical Journal. 1 (6).",
+    "citation": "FitzHugh, Richard (1961). Impulses and Physiological States in Theoretical Models of Nerve Membrane. Biophysical Journal. 1 (6). Forcing parameters from Rajasekar, S., Lakshmanan, M. (1988). Period-doubling bifurcations, chaos, phase-locking and devil's staircase in a Bonhoeffer-van der Pol oscillator. Physica D 32, 146-152.",
     "doi": "10.1016/s0006-3495(61)86902-6",
-    "correlation_dimension": 1.6159744662497548,
-    "description": "A driven neuron model sustaining both quiesent and oscillating states.",
-    "dt": 0.008425874900717644,
+    "correlation_dimension": 1.948718263592107,
+    "description": "A neuron model driven by a periodic current, in the period-doubling chaotic band of the forced Bonhoeffer-van der Pol oscillator.",
+    "dt": 0.0012646297191530574,
     "embedding_dimension": 3,
     "hamiltonian": false,
     "initial_conditions": [
-      -1.2155252,
-      -0.046470891,
-      0.0
+      -1.9111355171119426,
+      -0.09212206390388646,
+      126367.05882352941
     ],
-    "kaplan_yorke_dimension": 1.5705852319395741,
+    "kaplan_yorke_dimension": 2.128138696033906,
     "lyapunov_spectrum_estimated": [
-      0.0006271045837994497,
-      -0.0017541532237019502,
-      -0.9544351506941636
+      0.0693967670954211,
+      0.0,
+      -0.5415754119821731
     ],
-    "maximum_lyapunov_estimated": 0.007561278655908403,
-    "multiscale_entropy": 0.946734422406113,
+    "maximum_lyapunov_estimated": 0.0693967670954211,
+    "mean": [
+      -0.9322745172782148,
+      -0.2867480700843723,
+      0.0005774375888896832
+    ],
+    "multiscale_entropy": 0.8687190598106366,
     "nonautonomous": true,
     "parameters": {
       "a": 0.7,
       "b": 0.8,
-      "curr": 0.965,
-      "f": 0.4008225,
-      "gamma": 0.08,
-      "omega": 0.043650793650793655
+      "curr": 0.0,
+      "f": 0.76,
+      "gamma": 0.1,
+      "omega": 1.0
     },
-    "period": 42.12235294117647,
-    "pesin_entropy": 0.000828176101772673,
+    "period": 6.323148595765287,
+    "pesin_entropy": 0.0693967670954211,
+    "std": [
+      0.7141305293690228,
+      0.22010370931958265,
+      0.7069541726183429
+    ],
     "unbounded_indices": [
       2
-    ],
-    "mean": [
-      0.145927080851034,
-      1.0377525756395738,
-      0.005024130291678454
-    ],
-    "std": [
-      1.3452475396068937,
-      0.7070106596450483,
-      0.7143274622929852
     ]
   },
   "ForcedGlycolysis": {
@@ -2893,46 +2893,46 @@
   "ForcedVanDerPol": {
     "bifurcation_parameter": null,
     "citation": "B. van der Pol (1920). A theory of the amplitude of free and forced triode vibrations. Radio Review 1.",
-    "correlation_dimension": 1.3243672479645296,
+    "doi": "10.1109/tct.1968.1082812",
+    "correlation_dimension": 1.7396774339341328,
     "description": "An electronic circuit containing a triode.",
     "dt": 0.0028958576429408823,
     "embedding_dimension": 3,
     "hamiltonian": false,
     "initial_conditions": [
-      -1.520504,
-      0.19640249,
-      687.39073
+      1.5047536390741434,
+      -0.10722208621916426,
+      27975.657218162392
     ],
-    "kaplan_yorke_dimension": 2.012828649055009,
+    "kaplan_yorke_dimension": 2.0006007035310454,
     "lyapunov_spectrum_estimated": [
-      0.2651824388815116,
-      -0.0008450617218488057,
-      -20.60632249066986
+      0.007915510770385638,
+      0.0,
+      -13.177067157593061
     ],
-    "maximum_lyapunov_estimated": 0.0035097622587646343,
-    "multiscale_entropy": 0.39443058905146283,
+    "maximum_lyapunov_estimated": 0.007915510770385638,
+    "mean": [
+      -0.0018753402177405355,
+      -0.00011644814328227002,
+      -0.0010787991787265098
+    ],
+    "multiscale_entropy": 0.3831572674716001,
     "nonautonomous": true,
     "parameters": {
       "a": 1.2,
       "mu": 8.53,
-      "w": 0.63
+      "w": 0.6283185307179586
     },
     "period": 14.476875,
-    "pesin_entropy": 0.26518243888151155,
+    "pesin_entropy": 0.007915510770385638,
+    "std": [
+      1.5943699462434562,
+      1.6634882840712273,
+      0.7070449639294161
+    ],
     "unbounded_indices": [
       2
-    ],
-    "mean": [
-      0.014105218187229207,
-      -0.0022714739927344524,
-      -0.019034929032284622
-    ],
-    "std": [
-      1.5903555500786304,
-      1.651724229686892,
-      0.7063276934161323
-    ],
-    "doi": "10.1109/tct.1968.1082812"
+    ]
   },
   "ForcedWilsonCowan": {
     "bifurcation_parameter": "bf",
@@ -5027,45 +5027,45 @@
   "KawczynskiStrizhak": {
     "bifurcation_parameter": null,
     "citation": "P. E. Strizhak and A. L. Kawczynski, J. Phys. Chem. 99, 10830 (1995).",
-    "correlation_dimension": 0.49778489205270265,
+    "doi": "10.1021/j100027a024",
+    "correlation_dimension": 1.895445197775087,
     "description": "A chemical oscillator model describing mixed-modes in the BZ equations.",
-    "dt": 0.0015985997666280128,
+    "dt": 0.0012743196894848274,
     "embedding_dimension": 3,
     "hamiltonian": false,
     "initial_conditions": [
-      -1.160501,
-      5.8636902,
-      -1.2031947
+      -1.2836562705878585,
+      9.250972436150132,
+      -1.4786584558711549
     ],
-    "kaplan_yorke_dimension": 1.4235221965773541,
+    "kaplan_yorke_dimension": 2.018462711067151,
     "lyapunov_spectrum_estimated": [
-      0.025607519929323416,
-      -0.06145426210744069,
-      -0.31683393262481707
+      0.005878127854519124,
+      -0.00034436164490131844,
+      -0.299726632209697
     ],
-    "maximum_lyapunov_estimated": 0.0757060839542753,
-    "multiscale_entropy": 0.5935098791328474,
+    "maximum_lyapunov_estimated": 0.005878127854519124,
+    "mean": [
+      -1.3548330629582994,
+      8.712757384066308,
+      -1.3548198486581233
+    ],
+    "multiscale_entropy": 0.19589713148158966,
     "nonautonomous": false,
     "parameters": {
-      "beta": -0.4,
+      "beta": -0.5,
       "gamma": 0.49,
       "kappa": 0.2,
-      "mu": 2.1
+      "mu": 2.9
     },
-    "period": 10.991666666666667,
-    "pesin_entropy": 0.02560751992932341,
-    "unbounded_indices": [],
-    "mean": [
-      -1.0270845146493788,
-      4.9434386008890545,
-      -1.0276146148001888
-    ],
+    "period": 6.3715984474241365,
+    "pesin_entropy": 0.005878127854519124,
     "std": [
-      0.6760591699049165,
-      2.8366465390600086,
-      0.3913673061533514
+      0.6716007962076999,
+      3.8953198249091496,
+      0.437537175177791
     ],
-    "doi": "10.1021/j100027a024"
+    "unbounded_indices": []
   },
   "KeynesianGrowthCycle": {
     "bifurcation_parameter": "eps",
@@ -5497,27 +5497,33 @@
   "LiuChen": {
     "bifurcation_parameter": null,
     "citation": "Liu, Chen. Int J Bifurcat Chaos. 2004: 1395-1403.",
-    "correlation_dimension": 1.06018642946504,
+    "doi": "10.1142/s0218127404009880",
+    "correlation_dimension": 1.6717707902763774,
     "description": "Derived from Sakarya.",
-    "dt": 0.0016035472578764143,
+    "dt": 0.0016326979816513767,
     "embedding_dimension": 3,
     "hamiltonian": false,
     "initial_conditions": [
-      4.6722764,
-      5.2437205e-10,
-      -6.4444208e-10
+      -1.445606714913941,
+      -0.01889727945301918,
+      -0.1009155425578416
     ],
-    "kaplan_yorke_dimension": 1.2188137323261288,
+    "kaplan_yorke_dimension": 2.010263155783574,
     "lyapunov_spectrum_estimated": [
-      0.21332142584135133,
-      -0.9748996261500176,
-      -18.807059276226646
+      0.1713800194232477,
+      0.00023653622887334172,
+      -16.721616554509247
     ],
-    "maximum_lyapunov_estimated": 0.2457084451352168,
-    "multiscale_entropy": 0.7641473604711979,
+    "maximum_lyapunov_estimated": 0.1713800194232477,
+    "mean": [
+      -0.38249104997101513,
+      0.005308105730466706,
+      0.10737068511321042
+    ],
+    "multiscale_entropy": 0.5481550301868469,
     "nonautonomous": false,
     "parameters": {
-      "a": 0.4,
+      "a": 0.45,
       "b": 12.0,
       "c": -5.0,
       "h": 0.0,
@@ -5526,20 +5532,14 @@
       "r": 1.0,
       "s": 1.0
     },
-    "period": 8.0164,
-    "pesin_entropy": 0.2133214258413513,
-    "unbounded_indices": [],
-    "mean": [
-      -0.024223898288826984,
-      -0.015432465986593813,
-      -0.7715139378140847
-    ],
+    "period": 8.163489908256883,
+    "pesin_entropy": 0.17161655565212106,
     "std": [
-      9.713492086302303,
-      1.7764998826451408,
-      2.641897459378099
+      9.638775330179481,
+      1.869853139028305,
+      2.8927014228210703
     ],
-    "doi": "10.1142/s0218127404009880"
+    "unbounded_indices": []
   },
   "Lorenz": {
     "bifurcation_parameter": null,
@@ -6749,24 +6749,30 @@
   "PanXuZhou": {
     "bifurcation_parameter": null,
     "citation": "Zhou, Wuneng, et al. On dynamics analysis of a new chaotic attractor. Physics Letters A 372.36 (2008): 5773-5777..",
-    "correlation_dimension": 0.7715266839229182,
+    "doi": "10.1016/j.physleta.2008.07.032",
+    "correlation_dimension": 2.0162015525231474,
     "description": "A named attractor related to the DequanLi attractor",
-    "dt": 0.00035663943990670076,
+    "dt": 0.000239652986377709,
     "embedding_dimension": 3,
     "hamiltonian": false,
     "initial_conditions": [
-      -3.03805747,
-      -1.98052429,
-      14.65665869
+      -2.8209492015677884,
+      -4.156238510690355,
+      9.449826269369247
     ],
-    "kaplan_yorke_dimension": 2.0644468877116084,
+    "kaplan_yorke_dimension": 2.0556877803673883,
     "lyapunov_spectrum_estimated": [
-      0.8697394318152156,
-      0.01603608355912526,
-      -13.744271396596757
+      0.746834333122907,
+      0.00014361854281726011,
+      -13.413677951207507
     ],
-    "maximum_lyapunov_estimated": 0.6132378917107628,
-    "multiscale_entropy": 1.0993195372407014,
+    "maximum_lyapunov_estimated": 0.746834333122907,
+    "mean": [
+      0.46836227906449057,
+      0.47441289944734816,
+      15.051479629514162
+    ],
+    "multiscale_entropy": 1.210840057311135,
     "nonautonomous": false,
     "parameters": {
       "a": 10,
@@ -6774,22 +6780,16 @@
       "d": 0,
       "eps": 0.0,
       "f": 0,
-      "k": 16
+      "k": 18.0
     },
-    "period": 1.7829,
-    "pesin_entropy": 0.885775515374341,
-    "unbounded_indices": [],
-    "mean": [
-      -3.497291378598753,
-      -3.4792335024670478,
-      13.691370192125948
-    ],
+    "period": 1.198264931888545,
+    "pesin_entropy": 0.7469779516657243,
     "std": [
-      4.915666980877746,
-      5.511197683068892,
-      5.6133602984086695
+      6.321358439614031,
+      6.9980450441152575,
+      6.6577771083223105
     ],
-    "doi": "10.1016/j.physleta.2008.07.032"
+    "unbounded_indices": []
   },
   "ParallelAutocatalator": {
     "bifurcation_parameter": "ay",
@@ -7859,43 +7859,43 @@
     "bifurcation_parameter": "b1",
     "citation": "Kuznetsov, Y. A., Piccardi, C. (1994). Bifurcation analysis of periodic SEIR and SIR epidemic models. Journal of Mathematical Biology 32, 109-121. Parameters from Keeling, M. J., Rohani, P. (2008). Modeling Infectious Diseases in Humans and Animals. Princeton University Press.",
     "doi": "10.1007/BF00163027",
-    "correlation_dimension": 1.7880160953270139,
-    "description": "A susceptible-infected-recovered epidemic with births and deaths and a sinusoidally varying contact rate (school terms), with measles-like parameters: basic reproduction number 17, a 13-day infectious period and a 70-year lifespan. Time in years. The infected fraction is stored as a logarithm because it falls to about 1e-26 between epidemics.",
-    "dt": 0.0009657885229001902,
+    "correlation_dimension": 1.824079314589057,
+    "description": "A susceptible-infected-recovered epidemic with births and deaths and a sinusoidally varying contact rate (school terms), with measles-like parameters: basic reproduction number 22, a 13-day infectious period and a 70-year lifespan. Time in years. The infected fraction is stored as a logarithm because it falls to about 1e-26 between epidemics.",
+    "dt": 0.0006640335039427034,
     "embedding_dimension": 3,
     "hamiltonian": false,
     "initial_conditions": [
-      0.039256953099452305,
-      -15.933838656140544,
-      303.4114128464574
+      0.05085114506117019,
+      -13.490701954434513,
+      91326.83526678465
     ],
-    "kaplan_yorke_dimension": 2.3072680286872154,
+    "kaplan_yorke_dimension": 2.4558898967432694,
     "lyapunov_spectrum_estimated": [
-      0.22904220943151138,
-      -0.004526150791404056,
-      -0.5006432162518992
+      0.30942373254178457,
+      0.0,
+      -0.6787246981172605
     ],
-    "maximum_lyapunov_estimated": 0.267388412644718,
+    "maximum_lyapunov_estimated": 0.30942373254178457,
     "mean": [
-      0.05834889545258672,
-      -11.521045335208056,
-      -0.00014839202456835406
+      0.04517283993146982,
+      -16.567370357152882,
+      7.452861043385832e-05
     ],
-    "multiscale_entropy": 0.6499315198821028,
+    "multiscale_entropy": 0.6774955401653131,
     "nonautonomous": true,
     "parameters": {
-      "b0": 477.3076923076923,
+      "b0": 617.6923076923077,
       "b1": 0.4,
       "gamma": 28.076923076923077,
       "mu": 0.014285714285714285,
       "omega": 6.283185307179586
     },
-    "period": 4.828942614500951,
-    "pesin_entropy": 0.22904220943151135,
+    "period": 3.320167519713517,
+    "pesin_entropy": 0.30942373254178457,
     "std": [
-      0.01067622537858747,
-      6.806450745737922,
-      0.7070727544762596
+      0.015365979253695587,
+      7.595645536732223,
+      0.7071107068098667
     ],
     "unbounded_indices": [
       2
@@ -9523,47 +9523,47 @@
   "Tsucs2": {
     "bifurcation_parameter": null,
     "citation": "Pan, Zhou, Li (2013). Synchronization of Three-Scroll Unified Chaotic System (TSUCS) and its hyper-chaotic system using active pinning control",
-    "correlation_dimension": 1.4738205303007272,
+    "doi": "10.1007/s11071-013-0922-8",
+    "correlation_dimension": 1.886247364953833,
     "description": "A named attractor related to the DequanLi attractor",
-    "dt": 6.906351058511007e-05,
+    "dt": 5.1788999999999995e-05,
     "embedding_dimension": 3,
     "hamiltonian": false,
     "initial_conditions": [
-      1.2969944,
-      1.12138,
-      50.028988
+      -17.876711144252912,
+      -7.142280851681678,
+      1.6995781163511552
     ],
-    "kaplan_yorke_dimension": 2.315349160163322,
+    "kaplan_yorke_dimension": 2.223297901230356,
     "lyapunov_spectrum_estimated": [
-      0.6414001783252772,
-      -0.22409536897391863,
-      -1.3233103558456687
+      0.5210326646850587,
+      -0.006149740252307507,
+      -2.3058117501140036
     ],
-    "maximum_lyapunov_estimated": 0.13621488344499086,
-    "multiscale_entropy": 0.3913632586715302,
+    "maximum_lyapunov_estimated": 0.5210326646850587,
+    "mean": [
+      0.5820581364264554,
+      0.4384854892345336,
+      24.606854775391316
+    ],
+    "multiscale_entropy": 0.8199060801703965,
     "nonautonomous": false,
     "parameters": {
       "a": 40,
       "c": 0.833,
-      "d": 0.5,
+      "d": 0.7,
       "eps": 0.65,
       "f": 20,
       "k": 0
     },
-    "period": 0.34526,
-    "pesin_entropy": 0.6414001783252772,
-    "unbounded_indices": [],
-    "mean": [
-      0.5224463325226026,
-      0.1173721288558652,
-      38.72507164921492
-    ],
+    "period": 0.258945,
+    "pesin_entropy": 0.5210326646850587,
     "std": [
-      19.115623584201447,
-      19.172854098669315,
-      22.64532501883818
+      14.85932035555668,
+      12.19110854159175,
+      13.04527130071756
     ],
-    "doi": "10.1007/s11071-013-0922-8"
+    "unbounded_indices": []
   },
   "TurchinHanski": {
     "bifurcation_parameter": null,
