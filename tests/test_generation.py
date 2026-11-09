@@ -13,7 +13,7 @@ import numpy as np
 
 import dysts.flows as dfl
 import dysts.maps as dmp
-from dysts.base import DynMap, DynSys, DynSysDelay
+from dysts.base import DynMap, DynSys
 from dysts.flows import Lorenz
 from dysts.systems import get_attractor_list
 
@@ -55,7 +55,7 @@ class TestModels(unittest.TestCase):
         assert sol.shape == (100, 3), "Generated time series has the wrong shape"  # type: ignore
 
     def test_random_continuous_systems(self):
-        continuous_systems = get_attractor_list(sys_class="continuous_no_delay")
+        continuous_systems = get_attractor_list(sys_class="continuous")
         random_systems = random.sample(
             continuous_systems, min(NUM_TEST_SYSTEMS, len(continuous_systems))
         )
@@ -65,26 +65,6 @@ class TestModels(unittest.TestCase):
                 print(f"Testing {system_name}")
                 system = getattr(dfl, system_name)()
                 self.assertIsInstance(system, DynSys)
-
-                sol = system.make_trajectory(256, return_times=True)
-                self.assertIsInstance(sol, tuple)
-                self.assertEqual(len(sol), 2)
-                self.assertIsInstance(sol[0], np.ndarray)
-                self.assertIsInstance(sol[1], np.ndarray)
-                self.assertEqual(sol[0].shape[0], 256)
-                self.assertEqual(sol[1].shape[0], 256)
-
-    def test_random_delay_systems(self):
-        delay_systems = get_attractor_list(sys_class="delay")
-        random_systems = random.sample(
-            delay_systems, min(NUM_TEST_SYSTEMS, len(delay_systems))
-        )
-
-        for system_name in random_systems:
-            with self.subTest(system=system_name):
-                print(f"Testing {system_name}")
-                system = getattr(dfl, system_name)()
-                self.assertIsInstance(system, DynSysDelay)
 
                 sol = system.make_trajectory(256, return_times=True)
                 self.assertIsInstance(sol, tuple)
@@ -109,6 +89,36 @@ class TestModels(unittest.TestCase):
                 sol = system.make_trajectory(256)
                 self.assertIsInstance(sol, np.ndarray)
                 self.assertEqual(sol.shape[0], 256)
+
+
+class TestRemovedDelaySystems(unittest.TestCase):
+    """Delay systems were removed; asking for one raises an error that says how to downgrade"""
+
+    def test_removed_names_raise(self):
+        import dysts.base
+        import dysts.utils
+
+        for module, name in [
+            (dfl, "MackeyGlass"),
+            (dfl, "PiecewiseCircuit"),
+            (dysts.base, "DynSysDelay"),
+            (dysts.utils, "ddeint"),
+        ]:
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ImportError, r'dysts<=0\.99'):
+                    getattr(module, name)
+
+        with self.assertRaisesRegex(ImportError, r"MackeyGlass was removed"):
+            from dysts.flows import MackeyGlass  # noqa: F401
+
+        with self.assertRaisesRegex(ImportError, r'dysts<=0\.99'):
+            get_attractor_list(sys_class="delay")
+
+    def test_removed_names_not_listed(self):
+        names = get_attractor_list()
+        self.assertNotIn("MackeyGlass", names)
+        self.assertNotIn("MackeyGlass", dir(dfl))
+        self.assertEqual(names, get_attractor_list(sys_class="continuous_no_delay"))
 
 
 class TestJacobian(unittest.TestCase):

@@ -9,7 +9,8 @@ import warnings
 
 import numpy as np
 
-from .base import DynSys, DynSysDelay, staticjit
+from .base import DynSys, staticjit
+from .utils.native_utils import _REMOVED_DELAY_SYSTEMS, _removed_delay_error
 
 
 class Lorenz(DynSys):
@@ -475,62 +476,6 @@ class Duffing(DynSys):
     @staticjit
     def _postprocessing(x, y, z):
         return x, y, np.cos(z)
-
-
-# ------------------------------- DELAY SYSTEMS -------------------------------
-# Note: for now, delay systems will not be numba compile-able
-
-
-class MackeyGlass(DynSysDelay):
-    @staticjit
-    def _rhs(x, xt, t, beta, gamma, n, tau):
-        xdot = beta * (xt / (1 + xt**n)) - gamma * x
-        return xdot
-
-
-class IkedaDelay(DynSysDelay):
-    @staticjit
-    def _rhs(x, xt, t, c, mu, tau, x0):
-        xdot = mu * np.sin(xt - x0) - c * x
-        return xdot
-
-
-class SprottDelay(IkedaDelay):
-    pass
-
-
-class VossDelay(DynSysDelay):
-    @staticjit
-    def _rhs(x, xt, t, alpha, tau):
-        f = -10.44 * xt**3 - 13.95 * xt**2 - 3.63 * xt + 0.85
-        xdot = -alpha * x + f
-        return xdot
-
-
-class ScrollDelay(DynSysDelay):
-    @staticjit
-    def _rhs(x, xt, t, alpha, beta, tau):
-        f = np.tanh(10 * xt)
-        xdot = -alpha * xt + beta * f
-        return xdot
-
-
-class PiecewiseCircuit(DynSysDelay):
-    @staticjit
-    def _rhs(x, xt, t, alpha, beta, c, tau):
-        f = -((xt / c) ** 3) + 3 * xt / c
-        xdot = -alpha * xt + beta * f
-        return xdot
-
-
-# ------------------------------- DELAY SYSTEMS -------------------------------
-
-# ## this was not chaotic
-# class ENSODelay(DynSysDelay):
-#     @staticjit
-#     def _rhs(x, xt, t, alpha, beta, tau):
-#         xdot = x - x**3 - alpha * xt + beta
-#         return xdot
 
 
 class DoubleGyre(DynSys):
@@ -5559,4 +5504,6 @@ def __getattr__(name):
             stacklevel=2,
         )
         return globals()[new_name]
+    if name in _REMOVED_DELAY_SYSTEMS:
+        raise _removed_delay_error(name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

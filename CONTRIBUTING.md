@@ -52,7 +52,6 @@ We list parameters and arguments by name (instead of using keyword arguments) in
             "bifurcation_parameter": null,
             "citation": "Lorenz, Edward N (1963). Deterministic nonperiodic flow. Journal of the atmospheric sciences 20.2 (1963): 130-141.",
             "correlation_dimension": 1.993931310517824,
-            "delay": false,
             "description": "A minimal weather model based on atmospheric convection.",
             "dt": 0.0001801,
             "embedding_dimension": 3,
@@ -115,9 +114,6 @@ The workflow refuses to publish if the tag does not match the version in `pyproj
 
 A partial list of potential improvements in future versions. We very much appreciate any help or suggestsions for these tasks.
 
-+ Speed up the delay equation implementation
-+ + We need to roll our own implementation of DDE23 in the `utils` module.
-+ Improve calculations of Lyapunov exponents for delay systems
 + Implement multivariate multiscale entropy and re-calculate for all attractors
 + Add a method for parallel integrating multiple systems at once, based on a list of names and a set of shared settings
 + + Can use multiprocessing for a few systems, but greater speedups might be possible by compiling all right hand sides into a single function acting on a large vector.

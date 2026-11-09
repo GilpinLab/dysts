@@ -4,16 +4,15 @@ import gzip
 import json
 import logging
 import warnings
-from functools import partial
 from importlib import resources
 from typing import Any, Callable, Sequence
 
 import numpy as np
 from numpy.typing import ArrayLike
-from scipy.interpolate import interp1d
 
 from .coupling import RandomAdditiveCouplingMap
-from .utils import cast_to_numpy, ddeint, has_module, integrate_dyn, standardize_ts
+from .utils import cast_to_numpy, has_module, integrate_dyn, standardize_ts
+from .utils.native_utils import _removed_delay_error
 
 logger = logging.getLogger(__name__)
 
@@ -507,160 +506,6 @@ class DynMap(BaseDyn):
             return sol
 
 
-class DynSysDelay(BaseDyn):
-    """
-    A delayed differential equation object. Uses a exposed fork of ddeint
-    The delay timescale is assumed to be the "tau" field. The embedding dimensions are set to a
-    default value, but delay equations are infinite dimensional.
-    """
-
-    dt: float
-    period: float
-    maximum_lyapunov_estimated: float
-    tau: float
-
-    def __init__(
-        self,
-        metadata_path: str = DATAPATH_CONTINUOUS,
-        dt: float | None = None,
-        period: float | None = None,
-        maximum_lyapunov_estimated: float | None = None,
-        tau: float | None = None,
-        parameters: dict[str, float | int | ArrayLike] | None = None,
-        **kwargs,
-    ):
-        super().__init__(
-            metadata_path=metadata_path,
-            parameters=parameters,
-            dt=dt,
-            period=period,
-            maximum_lyapunov_estimated=maximum_lyapunov_estimated,
-            tau=tau,
-            **kwargs,
-        )
-
-    def delayed_rhs(
-        self, X: Callable[[float], ArrayLike], t: float, tau: float
-    ) -> ArrayLike:
-        """The right hand side of a dynamical equation"""
-        xt, xt_delayed = X(t), X(t - tau)
-        return self._rhs(xt, xt_delayed, t, *self.param_list)  # type: ignore
-
-    def make_trajectory(
-        self,
-        n: int,
-        init_cond: np.ndarray | None = None,
-        dt: float = 1e-3,
-        tau: float = 1,
-        resample: bool = True,
-        pts_per_period: int = 100,
-        standardize: bool = False,
-        timescale: str = "Fourier",
-        return_times: bool = False,
-        embedding_dim: int | None = None,
-        history_function: Callable[[float], ArrayLike] | None = None,
-        random_seed: int = 0,
-        **kwargs,
-    ):
-        """
-        Generate a fixed-length trajectory with default timestep, parameters, and
-        initial conditions.
-
-        Args:
-            n (int): the total number of trajectory points
-            method (str): Not used. Currently Euler is the only option here
-            noise (float): The amplitude of brownian forcing
-            resample (bool): whether to resample trajectories to have matching dominant
-                Fourier components
-            pts_per_period (int): if resampling, the number of points per period
-            standardize (bool): Standardize the output time series.
-            timescale (str): The timescale to use for resampling. "Fourier" (default) uses
-                the dominant significant Fourier timescale, estimated using the periodogram
-                of the system and surrogates. "Lyapunov" uses the Lypunov timescale of
-                the system.
-            return_times (bool): Whether to return the timepoints at which the solution
-                was computed
-            postprocess (bool): Whether to apply coordinate conversions and other domain-specific
-                rescalings to the integration coordinates
-            embedding_dim (int): Optionally augment solution with delay embedded trajectories.
-                If equation is multi-dimensional with dimension d, then this will return a flattened
-                delay embedding of shape (n, d*embedding_dim) where each consecutive (n, d) block
-                will be a trajectory for a different delay parameter.
-            history_function (callable): Function for specifying past conditions i.e.
-                points for t < 0
-
-        Todo:
-            Support for multiple initial conditions
-        """
-        np.random.seed(random_seed)
-
-        # timestep and time delay
-        # add delay time increment for potential interpolation later on
-        dt = dt if self.dt is None else self.dt
-        tau = tau if self.tau is None else self.tau
-        interp_pad = tau
-
-        if not resample:
-            tlim = (n - 1) * dt
-        elif resample and timescale == "Fourier" and self.period is not None:
-            tlim = self.period * (n / pts_per_period)
-        elif (
-            resample
-            and timescale == "Lyapunov"
-            and self.maximum_lyapunov_estimated is not None
-        ):
-            tlim = (1 / self.maximum_lyapunov_estimated) * (n / pts_per_period)
-        else:
-            raise ValueError(f"Invalid timescale resampling argument: {timescale}")
-
-        tpts = np.linspace(0, tlim + interp_pad, n)
-
-        emb_dim = self.dimension if embedding_dim is None else embedding_dim
-        if not hasattr(self, "ic") and init_cond is None:
-            raise ValueError(
-                "No initial conditions provided and no default initial conditions available for this system."
-            )
-        ics = init_cond if init_cond is not None else self.ic
-
-        # assume constant past points, overridable behavior
-        # need to change initial conditions to NOT be the same size as the default embedding
-        # dimensions, since the delay embedding happens as a postprocessing step
-        history_fn = history_function or (lambda t: ics[0])
-        sol = ddeint(partial(self.delayed_rhs, tau=tau), history_fn, tpts)
-
-        # augment the trajectory with per-dimension delay embeddings
-        interp_fns = [
-            interp1d(
-                tpts,
-                sol[:, dim],
-                axis=0,
-                kind=kwargs.pop("kind", "linear"),
-            )
-            for dim in range(sol.shape[-1])
-        ]
-
-        sample_ts = np.linspace(tau, tpts[-1], n)
-        sol = (
-            np.stack(
-                [
-                    [fn(sample_ts - tau) for fn in interp_fns]
-                    for tau in np.linspace(0, tau, emb_dim)
-                ],
-                axis=1,
-            )
-            .reshape(-1, len(tpts))
-            .T
-        )
-
-        if standardize:
-            sol = standardize_ts(sol)
-
-        if return_times:
-            return tpts, sol
-        else:
-            return sol
-
-
 class SkewProduct(DynSys):
     driver: DynSys
     response: DynSys
@@ -830,3 +675,9 @@ class SkewProduct(DynSys):
             )
 
         return np.concatenate([np.asarray(driver), np.asarray(response)])
+
+
+def __getattr__(name):
+    if name == "DynSysDelay":
+        raise _removed_delay_error(name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

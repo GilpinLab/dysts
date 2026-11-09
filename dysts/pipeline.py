@@ -75,7 +75,6 @@ DATABASE_FIELDS = (
     "bifurcation_parameter",
     "citation",
     "correlation_dimension",
-    "delay",
     "description",
     "doi",
     "dt",
@@ -754,7 +753,6 @@ def add_system(
     entry: dict[str, Any] = {
         "bifurcation_parameter": bifurcation_parameter,
         "citation": citation,
-        "delay": False,
         "description": description,
         "doi": doi,
         "dt": float(eq.dt),

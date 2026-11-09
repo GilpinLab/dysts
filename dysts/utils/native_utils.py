@@ -48,6 +48,31 @@ def has_module(module_name: str) -> bool:
         return False
 
 
+def _removed_delay_error(subject: str) -> ImportError:
+    """The error raised when code asks for a delay system, which dysts no longer includes.
+
+    Args:
+        subject: what was requested, for example "MackeyGlass"
+
+    Returns:
+        An ImportError that tells the user how to install a version with delay systems
+    """
+    return ImportError(
+        f"{subject} was removed from dysts. Delay differential equations are no longer "
+        'included; to use them, install version 0.99 or earlier: pip install "dysts<=0.99"'
+    )
+
+
+_REMOVED_DELAY_SYSTEMS = (
+    "MackeyGlass",
+    "IkedaDelay",
+    "SprottDelay",
+    "VossDelay",
+    "ScrollDelay",
+    "PiecewiseCircuit",
+)
+
+
 def convert_json_to_gzip(fpath, encoding="utf-8", delete_original=False):
     """
     Convert a json file to a gzip file in a format that can be easily read by the

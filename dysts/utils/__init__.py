@@ -6,9 +6,6 @@ dependencies on the rest of the package.
 _UTILITY_FILE_MAPPING: dict[str, list[str]] = {
     ".integration_utils": [
         "cast_to_numpy",
-        "dde",
-        "ddeint",
-        "ddeVar",
         "generate_ic_ensemble",
         "integrate_dyn",
         "integrate_weiner",
@@ -52,6 +49,10 @@ _UTILITY_MODULES: dict[str, str] = {
 
 def __getattr__(name: str):
     """Lazy load utilities"""
+    if name in ("dde", "ddeint", "ddeVar"):
+        from .native_utils import _removed_delay_error
+
+        raise _removed_delay_error(name)
     if name in _UTILITY_MODULES:
         module_path = _UTILITY_MODULES[name]
         # Use absolute import path to avoid issues with __name__ not being available

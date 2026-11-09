@@ -20,9 +20,9 @@ from .base import (
     BaseDyn,
     DynMap,
     DynSys,
-    DynSysDelay,
 )
 from .utils import num_unspecified_params
+from .utils.native_utils import _removed_delay_error
 
 Array = npt.NDArray[np.float64]
 
@@ -34,27 +34,23 @@ def get_attractor_list(
 
     Args:
         sys_class: class of systems to get the name of - must
-            be one of ['continuous', 'continuous_no_delay', 'delay', 'discrete']
+            be one of ['continuous', 'discrete']
         exclude: list of systems to exclude, optional
 
     Returns:
         Sorted list of systems belonging to sys_class
     """
     module: ModuleType
-    if sys_class in ["continuous", "continuous_no_delay", "delay"]:
+    if sys_class == "delay":
+        raise _removed_delay_error('sys_class="delay"')
+    if sys_class in ["continuous", "continuous_no_delay"]:
         module = dfl
-        parent_class = {
-            "continuous": (DynSys, DynSysDelay),
-            "continuous_no_delay": DynSys,
-            "delay": DynSysDelay,
-        }[sys_class]
+        parent_class = DynSys
     elif sys_class == "discrete":
         module = dmp
         parent_class = DynMap
     else:
-        raise Exception(
-            "sys_class must be in ['continuous', 'continuous_no_delay', 'delay', 'discrete']"
-        )
+        raise Exception("sys_class must be in ['continuous', 'discrete']")
 
     systems: list[tuple[str, BaseDyn]] = inspect.getmembers(
         module,
@@ -75,20 +71,20 @@ def get_system_data(
 
     Arguments:
         sys_class: class of systems to get the name of - must
-            be one of ['continuous', 'continuous_no_delay', 'delay', 'discrete']
+            be one of ['continuous', 'discrete']
         exclude: list of systems to exclude, optional
 
     Returns:
         Data from json file filtered by sys_class as a dict
     """
-    if sys_class in ["continuous", "continuous_no_delay", "delay"]:
+    if sys_class == "delay":
+        raise _removed_delay_error('sys_class="delay"')
+    if sys_class in ["continuous", "continuous_no_delay"]:
         datapath = DATAPATH_CONTINUOUS
     elif sys_class == "discrete":
         datapath = DATAPATH_DISCRETE
     else:
-        raise Exception(
-            "sys_class must be in ['continuous', 'continuous_no_delay', 'delay', 'discrete']"
-        )
+        raise Exception("sys_class must be in ['continuous', 'discrete']")
 
     systems = get_attractor_list(sys_class, exclude)
     with open(datapath, "r") as file:

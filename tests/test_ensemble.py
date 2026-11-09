@@ -31,7 +31,7 @@ class TestTrajectoryEnsemble(unittest.TestCase):
             pts_per_period=64,
             use_multiprocessing=False,
             subset=random.sample(
-                get_attractor_list(sys_class="continuous_no_delay"), NUM_SAMPLES
+                get_attractor_list(sys_class="continuous"), NUM_SAMPLES
             ),
         )
         self.assertTrue(len(sols) > 0)
@@ -44,7 +44,7 @@ class TestTrajectoryEnsemble(unittest.TestCase):
             pts_per_period=64,
             use_multiprocessing=True,
             subset=random.sample(
-                get_attractor_list(sys_class="continuous_no_delay"), NUM_SAMPLES
+                get_attractor_list(sys_class="continuous"), NUM_SAMPLES
             ),
             standardize=True,
         )
@@ -58,7 +58,7 @@ class TestTrajectoryEnsemble(unittest.TestCase):
             pts_per_period=64,
             use_multiprocessing=True,
             subset=random.sample(
-                get_attractor_list(sys_class="continuous_no_delay"), NUM_SAMPLES
+                get_attractor_list(sys_class="continuous"), NUM_SAMPLES
             ),
             standardize=False,
         )
