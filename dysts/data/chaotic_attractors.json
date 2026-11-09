@@ -5211,24 +5211,29 @@
     "bifurcation_parameter": null,
     "citation": "Langford, W. F. (1984). Numerical studies of torus bifurcations. In Numerical Methods for Bifurcation Problems (Dortmund, 1983), International Series of Numerical Mathematics 70, 285-295. Birkhauser, Basel. See also Fleurantin, E., and Mireles James, J. D. (2019). Resonant tori, transport barriers, and chaos in a vector field with a Neimark-Sacker bifurcation. arXiv:1905.08828.",
     "doi": "10.1007/978-3-0348-6256-1_19",
-    "correlation_dimension": 1.8926529653780282,
+    "correlation_dimension": 2.1678912294531267,
     "description": "Normal form of an interacting cusp (hysteresis) and Hopf bifurcation with an axial symmetry-breaking term, in which an invariant torus breaks up into a strange attractor.",
-    "dt": 0.0005168261376896056,
+    "dt": 0.00036302620253164555,
     "embedding_dimension": 3,
     "hamiltonian": false,
     "initial_conditions": [
-      -0.78450179,
-      -0.62887672,
-      -0.17620268
+      -0.1858569573416282,
+      0.5958142686577017,
+      1.8080716501946505
     ],
-    "kaplan_yorke_dimension": 2.3501297618370773,
+    "kaplan_yorke_dimension": 2.287333029312797,
     "lyapunov_spectrum_estimated": [
-      0.08947878317195473,
-      0.020305496211675024,
-      -0.3090729926541944
+      0.09538931182677898,
+      8.143436081572855e-05,
+      -0.33226512947685954
     ],
-    "maximum_lyapunov_estimated": 0.13489555530106362,
-    "multiscale_entropy": 0.514512246123007,
+    "maximum_lyapunov_estimated": 0.09538931182677898,
+    "mean": [
+      0.002734648440884553,
+      -0.0008828182179327815,
+      0.6969719117218836
+    ],
+    "multiscale_entropy": 0.6430209666164581,
     "nonautonomous": false,
     "parameters": {
       "a": 0.95,
@@ -5238,19 +5243,14 @@
       "e": 0.25,
       "f": 0.1
     },
-    "period": 2.5837,
-    "pesin_entropy": 0.10978427938362978,
-    "unbounded_indices": [],
-    "mean": [
-      0.007206831455761058,
-      -0.021945384443603604,
-      0.6653243755364856
-    ],
+    "period": 1.8151310126582276,
+    "pesin_entropy": 0.09547074618759471,
     "std": [
-      0.5509002440964534,
-      0.5544549994998836,
-      0.6959486032459631
-    ]
+      0.5725709430031367,
+      0.5727966633225852,
+      0.7264922202580726
+    ],
+    "unbounded_indices": []
   },
   "LarterBreakspear": {
     "bifurcation_parameter": "dv",
