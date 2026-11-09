@@ -4,17 +4,18 @@ Functions that act on DynSys or DynMap objects
 
 """
 
+import time
 import warnings
 from typing import Callable, Sequence
 
 import numpy as np
+from scipy.integrate import solve_ivp
 from scipy.spatial.distance import cdist
 from scipy.stats import linregress
 from tqdm import tqdm
 
 from .base import DynSys
 from .utils import (
-    ComputationHolder,
     find_characteristic_timescale,
     find_significant_frequencies,
     has_module,
@@ -370,6 +371,341 @@ def gpdistance(
     return np.abs(np.log(corr_gpdim(traj1, traj2, **kwargs)))
 
 
+# --------------------------------------------------------------------------- Lyapunov spectra
+
+#: Integrator settings for the variational Lyapunov spectrum. The tangent dynamics are
+#: integrated to the solver tolerance, so the spectrum is accurate to well below its
+#: statistical error for an explicit 8th-order method at 1e-10.
+LYAPUNOV_INTEGRATOR = {"method": "DOP853", "rtol": 1e-10, "atol": 1e-10}
+
+#: Integrator settings for the clone (finite-perturbation) method. The clones are
+#: displaced by ``delta`` (1e-7 relative), so the solver error must be far below that.
+CLONE_INTEGRATOR = {"method": "DOP853", "rtol": 1e-12, "atol": 1e-13}
+
+# Periods over which the tangent vectors align with the Lyapunov vectors before the
+# stretching factors are accumulated.
+_TANGENT_WARMUP_PERIODS = 5.0
+
+
+def _rhs_and_jacobian(eq, jacobian: str = "auto"):
+    """Right-hand side and Jacobian of ``eq`` as functions of (x, t), and the Jacobian kind."""
+
+    def rhs(x, t):
+        return np.asarray(eq.rhs(x, t), dtype=float)
+
+    has_jac = bool(getattr(eq, "has_jacobian", lambda: False)())
+    if jacobian not in ("auto", "analytic", "finite_difference"):
+        raise ValueError(f"unknown jacobian option {jacobian!r}")
+    if jacobian == "analytic" and not has_jac:
+        raise ValueError(f"{type(eq).__name__} has no analytic Jacobian")
+    if has_jac and jacobian != "finite_difference":
+
+        def jac(x, t):
+            return np.asarray(eq.jac(x, t), dtype=float)
+
+        return rhs, jac, "analytic"
+
+    def jac(x, t):
+        return jac_fd(lambda y: rhs(y, t), x)
+
+    return rhs, jac, "finite_difference"
+
+
+def _integrate_points(rhs, x0, t0, spans, integrator):
+    """Integrate along one trajectory and return the (t, x) at the end of each span."""
+    x, t = np.asarray(x0, dtype=float), float(t0)
+    points = []
+    for span in spans:
+        if span > 0:
+            sol = solve_ivp(lambda s, y: rhs(y, s), (t, t + span), x, **integrator)
+            if not sol.success or not np.all(np.isfinite(sol.y[:, -1])):
+                raise RuntimeError(f"trajectory integration failed: {sol.message}")
+            x, t = sol.y[:, -1], float(sol.t[-1])
+        points.append((t, x.copy()))
+    return points
+
+
+def mean_jacobian_trace(
+    eq,
+    initial_conditions: np.ndarray | None = None,
+    n_periods: float = 200.0,
+    n_samples: int = 20000,
+    transient_periods: float = 0.0,
+    integrator: dict | None = None,
+    jacobian: str = "auto",
+) -> float:
+    """
+    Time average of the trace of the Jacobian along a trajectory. For a flow this equals
+    the sum of the Lyapunov exponents, which gives a parameter-free consistency check
+    on a numerically estimated spectrum.
+
+    Args:
+        eq: A ``DynSys`` (or any object with ``rhs(X, t)``, ``period`` and ``ic``).
+        initial_conditions: Starting point; defaults to ``eq.ic``.
+        n_periods: Length of the averaging window, in units of ``eq.period``.
+        n_samples: Number of equally spaced samples in the window.
+        transient_periods: Periods discarded before the window starts.
+        integrator: ``solve_ivp`` settings (default ``LYAPUNOV_INTEGRATOR``).
+        jacobian: "auto" (analytic if available, otherwise central differences),
+            "analytic" or "finite_difference".
+
+    Returns:
+        float: The mean trace of the Jacobian, i.e. the mean phase-space contraction rate.
+    """
+    integrator = dict(LYAPUNOV_INTEGRATOR if integrator is None else integrator)
+    rhs, jac, _ = _rhs_and_jacobian(eq, jacobian)
+    x0 = np.asarray(eq.ic if initial_conditions is None else initial_conditions, float)
+    (t0, x0), = _integrate_points(rhs, x0, 0.0, [transient_periods * eq.period], integrator)
+    tt = t0 + np.linspace(0, n_periods * eq.period, n_samples)
+    sol = solve_ivp(
+        lambda s, y: rhs(y, s), (tt[0], tt[-1]), x0, t_eval=tt, **integrator
+    )
+    return float(np.mean([np.trace(jac(x, t)) for t, x in zip(sol.t, sol.y.T)]))
+
+
+def _variational_blocks(
+    rhs, jac, x0, t0, dt_renorm, n_per_block, n_blocks, n_warm, integrator, deadline
+):
+    """Block averages of the variational (tangent-space) stretching rates."""
+    d = len(x0)
+
+    def augmented(t, z):
+        v = z[d:].reshape(d, d)
+        return np.concatenate([rhs(z[:d], t), (jac(z[:d], t) @ v).ravel()])
+
+    def augmented_jac(t, z):
+        # Newton-iteration Jacobian for implicit solvers (second derivatives dropped)
+        J = jac(z[:d], t)
+        out = np.zeros((d + d * d, d + d * d))
+        out[:d, :d] = J
+        out[d:, d:] = np.kron(J, np.eye(d))
+        return out
+
+    opts = dict(integrator)
+    if opts.get("method") in ("Radau", "BDF", "LSODA"):
+        opts["jac"] = augmented_jac
+    z = np.concatenate([np.asarray(x0, dtype=float), np.eye(d).ravel()])
+    t, blocks, sums = float(t0), [], np.zeros(d)
+    for step in range(n_warm + n_per_block * n_blocks):
+        sol = solve_ivp(augmented, (t, t + dt_renorm), z, **opts)
+        if not sol.success or not np.all(np.isfinite(sol.y[:, -1])):
+            warnings.warn(f"variational integration stopped early: {sol.message}")
+            break
+        z, t = sol.y[:, -1], t + dt_renorm
+        q, r = np.linalg.qr(z[d:].reshape(d, d))
+        if step >= n_warm:
+            sums += np.log(np.abs(np.diag(r)))
+            if (step - n_warm + 1) % n_per_block == 0:
+                blocks.append(sums / (n_per_block * dt_renorm))
+                sums = np.zeros(d)
+                if deadline is not None and time.time() > deadline:
+                    break
+        z = np.concatenate([z[:d], q.ravel()])
+    return np.array(blocks).reshape(-1, d)
+
+
+def _clone_blocks(
+    rhs, x0, t0, dt_renorm, n_per_block, n_blocks, n_warm, integrator, deadline, delta
+):
+    """Block averages of the stretching rates of d clones displaced along the QR basis."""
+    d = len(x0)
+
+    def stacked(t, z):
+        return np.concatenate([rhs(z[i * d : (i + 1) * d], t) for i in range(d + 1)])
+
+    x = np.asarray(x0, dtype=float)
+    scale = delta * max(1.0, float(np.max(np.abs(x))))
+    q = np.eye(d)
+    t, blocks, sums = float(t0), [], np.zeros(d)
+    for step in range(n_warm + n_per_block * n_blocks):
+        z = np.concatenate([x] + [x + scale * q[:, i] for i in range(d)])
+        sol = solve_ivp(stacked, (t, t + dt_renorm), z, **integrator)
+        if not sol.success or not np.all(np.isfinite(sol.y[:, -1])):
+            warnings.warn(f"clone integration stopped early: {sol.message}")
+            break
+        zf, t = sol.y[:, -1], t + dt_renorm
+        x = zf[:d]
+        dx = np.stack(
+            [(zf[(i + 1) * d : (i + 2) * d] - x) / scale for i in range(d)], axis=1
+        )
+        q, r = np.linalg.qr(dx)
+        if step >= n_warm:
+            sums += np.log(np.abs(np.diag(r)))
+            if (step - n_warm + 1) % n_per_block == 0:
+                blocks.append(sums / (n_per_block * dt_renorm))
+                sums = np.zeros(d)
+                if deadline is not None and time.time() > deadline:
+                    break
+    return np.array(blocks).reshape(-1, d)
+
+
+def batch_means_error(samples: np.ndarray, max_lag1: float = 0.2) -> float:
+    """
+    Standard error of the mean of a correlated series by the method of batch means.
+    Adjacent samples are averaged in pairs until their lag-1 autocorrelation drops below
+    ``max_lag1`` (or fewer than 8 batches remain), so slow intermittent fluctuations
+    widen the error instead of being averaged away.
+    """
+    x = np.asarray(samples, dtype=float)
+    while len(x) >= 8:
+        xc = x - x.mean()
+        r1 = np.sum(xc[1:] * xc[:-1]) / max(np.sum(xc * xc), 1e-300)
+        if r1 < max_lag1:
+            break
+        n = len(x) // 2 * 2
+        x = 0.5 * (x[:n:2] + x[1:n:2])
+    return float(np.std(x, ddof=1) / np.sqrt(len(x))) if len(x) > 1 else float("nan")
+
+
+def lyapunov_spectrum(
+    eq,
+    n_runs: int = 4,
+    n_periods: float = 1000.0,
+    transient_periods: float = 50.0,
+    spacing_periods: float = 50.0,
+    block_periods: float = 25.0,
+    method: str = "variational",
+    jacobian: str = "auto",
+    dt_renorm: float | None = None,
+    initial_conditions: np.ndarray | None = None,
+    integrator: dict | None = None,
+    delta: float = 1e-7,
+    max_walltime: float | None = None,
+    full_output: bool = False,
+) -> np.ndarray | dict:
+    """
+    Lyapunov spectrum of a continuous-time system, with a statistical error.
+
+    The spectrum is averaged over ``n_runs`` runs that start from points
+    ``spacing_periods`` apart along one trajectory, after a transient of
+    ``transient_periods``. Each run integrates the tangent dynamics for ``n_periods`` and
+    re-orthonormalizes them with a QR decomposition every ``dt_renorm`` (Benettin et al.
+    1980; Shimada & Nagashima 1979). The logarithmic stretching factors are accumulated in
+    blocks of ``block_periods``; block averages give a batch-means standard error, which
+    exposes intermittent systems whose averages converge slowly, and the spread across
+    runs exposes coexisting attractors and long transients.
+
+    ``method="variational"`` integrates the state together with the variational equations
+    dV/dt = J(x) V using the analytic Jacobian, or central finite differences when the
+    system has none. Its accuracy is set by the solver tolerances. ``method="clones"``
+    integrates d copies of the trajectory displaced by ``delta`` along the orthonormal
+    tangent basis and uses their separations instead; it needs no Jacobian and captures
+    the jumps of tangent vectors at discontinuities of the vector field (``sign``,
+    Heaviside or switching terms), which the variational equations miss.
+
+    Args:
+        eq: A ``DynSys`` (or any object with ``rhs(X, t)``, ``period`` and ``ic``; an
+            analytic Jacobian is used if ``has_jacobian()`` returns True).
+        n_runs: Number of runs from separate points on the attractor.
+        n_periods: Length of each run, in units of ``eq.period``.
+        transient_periods: Periods integrated from the initial condition and discarded
+            before the first run.
+        spacing_periods: Periods between the starting points of successive runs.
+        block_periods: Length of the blocks used for the standard error.
+        method: "variational" or "clones".
+        jacobian: For the variational method: "auto" (analytic if available, otherwise
+            central differences), "analytic" or "finite_difference".
+        dt_renorm: Time between QR re-orthonormalizations. Defaults to
+            ``min(period / 5, 2 / |<tr J>|)``, so that the most contracting direction
+            shrinks by at most about e^2 between steps.
+        initial_conditions: Starting point; defaults to ``eq.ic``.
+        integrator: ``solve_ivp`` settings; defaults to ``LYAPUNOV_INTEGRATOR``
+            (variational) or ``CLONE_INTEGRATOR`` (clones). Implicit methods ("Radau",
+            "BDF", "LSODA") receive the Jacobian of the augmented system.
+        delta: Relative displacement of the clones.
+        max_walltime: Wall-clock limit in seconds for each run, checked at the end of
+            each block; runs that hit it return the blocks completed so far.
+        full_output: Return a dictionary of diagnostics instead of the spectrum alone.
+
+    Returns:
+        The spectrum, sorted in decreasing order. With ``full_output=True``, a dictionary
+        with keys "spectrum", "standard_error", "max_exponent_by_run", "blocks" (one
+        array of block averages per run, columns in spectrum order), "start_points",
+        "periods_integrated", "dt_renorm", "block_time", "mean_jacobian_trace",
+        "method" and "jacobian".
+
+    Example:
+        >>> from dysts.flows import Lorenz
+        >>> from dysts.analysis import lyapunov_spectrum
+        >>> lyapunov_spectrum(Lorenz(), n_runs=1, n_periods=200)  # about [0.91, 0, -14.57]
+    """
+    if method not in ("variational", "clones"):
+        raise ValueError(f"unknown method {method!r}")
+    default = LYAPUNOV_INTEGRATOR if method == "variational" else CLONE_INTEGRATOR
+    integrator = dict(default if integrator is None else integrator)
+    rhs, jac, jac_kind = _rhs_and_jacobian(eq, jacobian)
+    period = float(eq.period)
+    x0 = np.asarray(eq.ic if initial_conditions is None else initial_conditions, float)
+    spans = [transient_periods * period] + [spacing_periods * period] * (n_runs - 1)
+    starts = _integrate_points(rhs, x0, 0.0, spans, integrator)
+    t_start, x_start = starts[0]
+    trace = mean_jacobian_trace(
+        eq, x_start, n_periods=min(200.0, max(n_periods, 20.0)),
+        n_samples=10000, integrator=integrator, jacobian=jacobian,
+    )
+    if dt_renorm is None:
+        dt_renorm = period / 5
+        if abs(trace) > 0:
+            dt_renorm = min(dt_renorm, 2.0 / abs(trace))
+    n_per_block = max(int(np.ceil(block_periods * period / dt_renorm)), 1)
+    n_blocks = max(int(round(n_periods / block_periods)), 1)
+    n_warm = max(int(np.ceil(_TANGENT_WARMUP_PERIODS * period / dt_renorm)), 1)
+
+    runs = []
+    for t0, xs in starts:
+        deadline = None if max_walltime is None else time.time() + max_walltime
+        if method == "variational":
+            b = _variational_blocks(
+                rhs, jac, xs, t0, dt_renorm, n_per_block, n_blocks, n_warm,
+                integrator, deadline,
+            )
+        else:
+            b = _clone_blocks(
+                rhs, xs, t0, dt_renorm, n_per_block, n_blocks, n_warm,
+                integrator, deadline, delta,
+            )
+        if len(b):
+            runs.append(b)
+    d = len(x0)
+    if not runs:
+        warnings.warn("no Lyapunov block completed; returning NaN")
+        spectrum = np.full(d, np.nan)
+        if not full_output:
+            return spectrum
+        return {"spectrum": spectrum, "standard_error": np.full(d, np.nan),
+                "max_exponent_by_run": [], "blocks": [], "start_points": starts,
+                "periods_integrated": 0.0, "dt_renorm": dt_renorm,
+                "block_time": n_per_block * dt_renorm, "mean_jacobian_trace": trace,
+                "method": method, "jacobian": jac_kind}
+
+    all_blocks = np.concatenate(runs)
+    order = np.argsort(all_blocks.mean(axis=0))[::-1]
+    spectrum = all_blocks.mean(axis=0)[order]
+    if not full_output:
+        return spectrum
+    # error of the block-weighted mean, pooling the batch-means error of each run
+    weights = np.array([len(r) for r in runs], dtype=float)
+    se = np.array([
+        np.sqrt(np.nansum([(batch_means_error(r[:, i]) * w) ** 2
+                           for r, w in zip(runs, weights) if len(r) > 1]))
+        / weights[weights > 1].sum() if np.any(weights > 1) else np.nan
+        for i in order
+    ])
+    return {
+        "spectrum": spectrum,
+        "standard_error": se,
+        "max_exponent_by_run": [float(r.mean(axis=0)[order[0]]) for r in runs],
+        "blocks": [r[:, order] for r in runs],
+        "start_points": starts,
+        "periods_integrated": float(len(all_blocks) * n_per_block * dt_renorm / period),
+        "dt_renorm": float(dt_renorm),
+        "block_time": float(n_per_block * dt_renorm),
+        "mean_jacobian_trace": trace,
+        "method": method,
+        "jacobian": jac_kind,
+    }
+
+
 def find_lyapunov_exponents(
     model: Callable,
     traj_length: int,
@@ -379,80 +715,32 @@ def find_lyapunov_exponents(
     **kwargs,
 ) -> np.ndarray:
     """
-    Given a dynamical system, compute its spectrum of Lyapunov exponents.
-    Args:
-        model (callable): the right hand side of a differential equation, in format
-            func(X, t)
-        traj_length (int): the length of each trajectory used to calulate Lyapunov
-            exponents
-        pts_per_period (int): the sampling density of the trajectory
-        kwargs: additional keyword arguments to pass to the model's make_trajectory
-            method
+    Deprecated: use :func:`lyapunov_spectrum`.
+
+    Computes the spectrum with :func:`lyapunov_spectrum` from a single run of
+    ``traj_length / pts_per_period`` periods starting at ``model.ic``. ``tol`` and
+    ``min_tpts`` are ignored; solver settings in ``kwargs`` (``method``, ``rtol``,
+    ``atol``) are passed on as the integrator.
 
     Returns:
-        final_lyap (ndarray): A list of computed Lyapunov exponents
-
-    References:
-        Christiansen & Rugh (1997). Computing Lyapunov spectra with continuous
-            Gram-Schmidt orthonormalization
-
-    Example:
-        >>> import dysts
-        >>> model = dysts.Lorenz()
-        >>> lyap = dysts.find_lyapunov_exponents(model, 1000, pts_per_period=1000)
-        >>> print(lyap)
-
+        final_lyap (ndarray): The Lyapunov exponents in decreasing order.
     """
-    d = np.asarray(model.ic).shape[-1]
-    tpts, traj = model.make_trajectory(
-        traj_length,
-        pts_per_period=pts_per_period,
-        resample=True,
-        return_times=True,
-        postprocessing=False,
-        **kwargs,
+    warnings.warn(
+        "find_lyapunov_exponents is deprecated; use dysts.analysis.lyapunov_spectrum, "
+        "which integrates the variational equations instead of a first-order "
+        "backward-Euler step and reports an error estimate.",
+        DeprecationWarning,
+        stacklevel=2,
     )
-    dt = np.median(np.diff(tpts))
-    # traj has shape (traj_length, d), where d is the dimension of the system
-    # tpts has shape (traj_length,)
-    # dt is the dimension of the system
-
-    u = np.identity(d)
-    all_lyap = list()
-    for i, (t, X) in enumerate(zip(tpts, traj)):
-        X = traj[i]
-
-        if not model.has_jacobian():
-            # no analytic Jacobian: fall back to finite differences
-            rhsy = lambda x: np.array(model.rhs(x, t))  # noqa: E731
-            jacval = jac_fd(rhsy, X)
-        else:
-            jacval = np.array(model.jac(X, t))
-
-        # If postprocessing is applied to a trajectory, transform the jacobian into the
-        # new coordinates.
-        if hasattr(model, "_postprocessing"):
-            X0 = np.copy(X)
-            y2h = lambda y: model._postprocessing(*y)
-            dhdy = jac_fd(y2h, X0)
-            dydh = np.linalg.inv(dhdy)  # dy/dh
-            ## Alternate version if good second-order fd is ever available
-            jacval = dhdy @ jacval @ dydh
-
-        ## Backward Euler update
-        if i < 1:
-            continue
-        u_n = np.matmul(np.linalg.inv(np.eye(d) - jacval * dt), u)
-
-        q, r = np.linalg.qr(u_n)
-        lyap_estimate = np.log(abs(r.diagonal()))
-        all_lyap.append(lyap_estimate)
-        u = q  # post-iteration update axes
-
-    all_lyap = np.array(all_lyap)
-    # normalize by the total integrated time of the accumulated steps
-    final_lyap = np.sum(all_lyap, axis=0) / (dt * len(all_lyap))
-    return np.sort(final_lyap)[::-1]
+    integrator = {k: kwargs[k] for k in ("method", "rtol", "atol") if k in kwargs}
+    return lyapunov_spectrum(
+        model,
+        n_runs=1,
+        n_periods=traj_length / pts_per_period,
+        transient_periods=0.0,
+        block_periods=min(25.0, traj_length / pts_per_period),
+        integrator={**LYAPUNOV_INTEGRATOR, **integrator},
+    )
 
 
 def calculate_lyapunov_exponent(
@@ -481,7 +769,7 @@ def calculate_lyapunov_exponent(
 
 def max_lyapunov_exponent(
     eq: DynSys,
-    max_walltime: float,
+    max_walltime: float | None = None,
     rtol: float = 1e-3,
     atol: float = 1e-10,
     n_samples: int = 1000,
@@ -489,110 +777,27 @@ def max_lyapunov_exponent(
     **kwargs,
 ) -> float | None:
     """
-    Calculate the lyapunov spectrum of the system using a naive method based on the
-    log-transformed separation of the trajectories over time.
+    Deprecated: use ``lyapunov_spectrum(eq)[0]``.
 
-    Args:
-        eq (dysts.DynSys): equation to calculate the lyapunov spectrum of
-        rtol (float): relative tolerance for the separation of the trajectories
-        atol (float): absolute tolerance for the separation of the trajectories
-        n_samples (int): number of initial conditions to sample
-        traj_length (int): length of the trajectories to sample. This should be long
-            enough to ensure that most trajectories explore the attractor.
-        max_walltime (float): maximum walltime in seconds to spend on the calculation
-            of a given trajectory. If the calculation takes longer than this, the
-            trajectory is discarded and a new one is sampled.
-        **kwargs: keyword arguments to pass to the sample / make_trajectory method of
-             the dynamical equation
+    The former two-trajectory divergence fit overestimated the largest exponent (a
+    median 1.2x and up to 2.7x over the database). This now returns the largest exponent
+    of :func:`lyapunov_spectrum`, with ``max_walltime`` as its per-run time limit.
+    ``rtol``, ``atol``, ``n_samples`` and ``traj_length`` are ignored; solver settings in
+    ``kwargs`` (``method``) are passed on as the integrator.
 
     Returns:
-        float: largest lyapunov exponent
-
-    Example:
-        >>> import dysts
-        >>> eq = dysts.Lorenz()
-        >>> max_lyap = dysts.lyapunov_exponent_naive(eq)
-
+        float: largest Lyapunov exponent, or None if no estimate completed
     """
-    all_ic = sample_initial_conditions(
-        eq,
-        n_samples,
-        traj_length=max(traj_length, n_samples),
-        pts_per_period=15,
-        **kwargs,
+    warnings.warn(
+        "max_lyapunov_exponent is deprecated; use dysts.analysis.lyapunov_spectrum(eq)[0].",
+        DeprecationWarning,
+        stacklevel=2,
     )
-    pts_per_period = 100
-    eps = atol
-    eps_max = rtol
-    all_lyap = []
-    all_cutoffs = []
-    for ind, ic in enumerate(all_ic):
-        np.random.seed(ind)
-        eq.ic = ic
-        out = ComputationHolder(
-            eq.make_trajectory,
-            traj_length,
-            timeout=max_walltime,
-            resample=True,
-            return_times=True,
-            **kwargs,
-        ).run()
-        if out is None or np.sum(np.isnan(out[1])) > 0:
-            continue
-        else:
-            # Ensure out is a tuple with at least two elements
-            if isinstance(out, tuple) and len(out) >= 2:
-                tvals, traj1, *_ = out  # Unpack only the first two elements
-            else:
-                continue  # Skip if out is not valid
-
-        np.random.seed(ind)
-        eq.ic = ic
-        eq.ic *= 1 + eps * (np.random.random(eq.ic.shape) - 0.5)
-        traj2 = ComputationHolder(
-            eq.make_trajectory,
-            traj_length,
-            timeout=max_walltime,
-            resample=True,
-            **kwargs,
-        ).run()
-        if traj2 is None:
-            continue
-        if np.sum(np.isnan(traj2)) > 0:
-            continue
-
-        ## Truncate traj1 and traj2 to when their scaled separation is less than eps_max
-        separation = np.linalg.norm(traj1 - traj2, axis=1) / np.linalg.norm(
-            traj1, axis=1
-        )
-        cutoff_index = np.where(separation < eps_max)[0][-1]
-        all_cutoffs.append(cutoff_index)
-        traj1 = traj1[:cutoff_index]
-        traj2 = traj2[:cutoff_index]
-        lyap = calculate_lyapunov_exponent(
-            traj1, traj2, dt=float(np.median(np.diff(tvals)))
-        )  # Convert to float
-        all_lyap.append(lyap)
-
-    ## Return None if no trajectories were successful
-    if len(all_lyap) == 0:
-        return None
-
-    if len(all_lyap) < int(0.6 * n_samples):
-        warnings.warn(
-            "The number of successful trajectories is less than 60% of the total number "
-            + "of trajectories attempted. This may indicate that the integration "
-            + "is unstable"
-        )
-
-    if np.median(all_cutoffs) < pts_per_period:
-        warnings.warn(
-            "The median cutoff index is less than the number of points per period. "
-            + "This may indicate that the integration is not long enough to capture "
-            + "the invariant properties."
-        )
-
-    return float(np.mean(all_lyap))
+    integrator = dict(LYAPUNOV_INTEGRATOR)
+    if "method" in kwargs:
+        integrator["method"] = kwargs["method"]
+    spectrum = lyapunov_spectrum(eq, max_walltime=max_walltime, integrator=integrator)
+    return None if not np.isfinite(spectrum[0]) else float(spectrum[0])
 
 
 def kaplan_yorke_dimension(spectrum0: np.ndarray) -> float:

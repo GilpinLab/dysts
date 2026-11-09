@@ -62,13 +62,13 @@ We list parameters and arguments by name (instead of using keyword arguments) in
                 -15.03852,
                 20.533978
             ],
-            "kaplan_yorke_dimension": 2.075158758095728,
+            "kaplan_yorke_dimension": 2.062079534784479,
             "lyapunov_spectrum_estimated": [
-                1.0910931847726466,
-                0.02994120961308413,
-                -14.915552395875103
+                0.9050430367123482,
+                -0.00044501018833715547,
+                -14.571598026056346
             ],
-            "maximum_lyapunov_estimated": 1.0910931847726466,
+            "maximum_lyapunov_estimated": 0.9050430367123482,
             "multiscale_entropy": 1.1541457906835575,
             "nonautonomous": false,
             "parameters": {
@@ -77,7 +77,7 @@ We list parameters and arguments by name (instead of using keyword arguments) in
                 "sigma": 10
             },
             "period": 1.5008,
-            "pesin_entropy": 1.121034394385731,
+            "pesin_entropy": 0.9050430367123482,
             "unbounded_indices": []
         },
         
@@ -99,7 +99,7 @@ Feel free to copy and paste and then fill out the fields that you know; we have 
         plot_path="Liu.png",   # optional: attractor + first coordinate overlaid on Rossler
     )
 
-The pipeline (i) finds an integration timestep and dominant period, (ii) rescales the period so that the first coordinate oscillates at the same rate as the Rossler system when both are resampled at 100 points per period, (iii) settles onto the attractor and detects unbounded variables, (iv) estimates the Lyapunov spectrum over an ensemble of initial conditions (by integrating the variational equations with the analytic Jacobian when the system has one, otherwise by a QR method), along with the Kaplan-Yorke dimension, Pesin entropy, correlation dimension and multiscale entropy, and (v) independently estimates the largest Lyapunov exponent from the divergence of nearby trajectories. `report["flags"]` lists inconsistencies between these estimates (for example, spectrum and direct estimates of the largest Lyapunov exponent that disagree by more than a factor of two). Pass `write=False` to inspect the entry before it is written. The multiscale entropy requires the optional dependency `neurokit2`, and the ensemble steps are much faster when `numba` is installed.
+The pipeline (i) finds an integration timestep and dominant period, (ii) rescales the period so that the first coordinate oscillates at the same rate as the Rossler system when both are resampled at 100 points per period, (iii) settles onto the attractor and detects unbounded variables, (iv) estimates the Lyapunov spectrum and its standard error from four runs of 1000 periods on the attractor (`dysts.analysis.lyapunov_spectrum`, which integrates the variational equations with the analytic Jacobian, or with central finite differences when the class has none), along with the Kaplan-Yorke dimension, Pesin entropy, correlation dimension and multiscale entropy, and (v) cross-checks the largest exponent with the Jacobian-free clone method and the sum of the exponents with the mean trace of the Jacobian. `report["flags"]` lists inconsistencies between these estimates. If the right-hand side is discontinuous (`sign`, Heaviside or switching terms), pass `spectrum_method="clones"`, since the variational equations miss the jumps of the tangent vectors at the switching surfaces; for stiff systems pass `integrator={"method": "LSODA", "rtol": 1e-10, "atol": 1e-12}`. Pass `write=False` to inspect the entry before it is written. The multiscale entropy requires the optional dependency `neurokit2`, and the ensemble steps are much faster when `numba` is installed.
 
 ## Releasing
 

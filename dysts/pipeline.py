@@ -8,10 +8,12 @@ The steps are:
    of all systems in the database oscillate at a comparable rate.
 2. Pick an initial condition on the attractor and detect unbounded variables.
 3. Estimate the mean and standard deviation of each variable.
-4. Estimate the Lyapunov spectrum over an ensemble of initial conditions,
+4. Estimate the Lyapunov spectrum with a standard error from several long runs on the
+   attractor (variational equations, see :func:`dysts.analysis.lyapunov_spectrum`),
    together with the Kaplan-Yorke dimension, Pesin entropy, correlation dimension and
    multiscale entropy.
-5. Independently estimate the largest Lyapunov exponent by direct trajectory divergence.
+5. Cross-check the largest exponent with the Jacobian-free clone method, and the sum
+   of the exponents against the mean trace of the Jacobian.
 6. Flag suspicious values and optionally write the entry to the JSON database.
 
 Example:
@@ -35,22 +37,20 @@ import warnings
 from typing import Any, Sequence
 
 import numpy as np
-from scipy.integrate import solve_ivp
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks, savgol_filter, welch
 
 from .analysis import (
-    find_lyapunov_exponents,
+    LYAPUNOV_INTEGRATOR,
     gp_dim,
     kaplan_yorke_dimension,
-    max_lyapunov_exponent,
+    lyapunov_spectrum,
     sample_initial_conditions,
 )
-from .base import DATAPATH_CONTINUOUS, BaseDyn, DynSys
+from .base import DATAPATH_CONTINUOUS, DynSys
 from .utils import (
     find_characteristic_timescale,
     find_significant_frequencies,
-    jac_fd,
     standardize_ts,
 )
 
@@ -62,12 +62,13 @@ STEPS_PER_PERIOD = 5000
 # boundedness, moments).
 FAST_INTEGRATOR = {"method": "DOP853", "rtol": 1e-9, "atol": 1e-11}
 
-# Integrator settings for the invariant estimates (Lyapunov spectra, dimensions). An
-# explicit high-order method at 1e-10 is typically 20-50x faster than the package default
-# (Radau at 1e-12) for non-stiff systems and gives statistically indistinguishable
-# estimates; pass ``integrator={"method": "Radau", "rtol": 1e-12, "atol": 1e-12}`` to
-# ``add_system`` to use the package's default integrator settings instead.
-ACCURATE_INTEGRATOR = {"method": "DOP853", "rtol": 1e-10, "atol": 1e-10}
+# Integrator settings for the trajectories behind the invariant estimates (dimensions,
+# entropy), shared with the variational Lyapunov spectrum. An explicit high-order method
+# at 1e-10 is typically 20-50x faster than the package default (Radau at 1e-12) for
+# non-stiff systems and gives statistically indistinguishable estimates; stiff systems
+# can pass e.g. ``integrator={"method": "LSODA", "rtol": 1e-10, "atol": 1e-12}`` to
+# ``add_system``.
+ACCURATE_INTEGRATOR = dict(LYAPUNOV_INTEGRATOR)
 
 # Fields that every entry in the continuous-time database carries, in sorted order.
 DATABASE_FIELDS = (
@@ -98,34 +99,6 @@ DATABASE_FIELDS = (
 def _log(verbose: bool, msg: str) -> None:
     if verbose:
         print(msg, flush=True)
-
-
-def _raw_copy(eq: DynSys) -> DynSys:
-    """Return an equivalent system object without any postprocessing map.
-
-    Lyapunov exponents are invariant under smooth invertible changes of coordinates,
-    but the postprocessing maps used in the database (e.g. the sine of an angle) are
-    not invertible, so the spectrum is computed in the raw coordinates.
-    """
-    cls = type(eq)
-    attrs = {"_rhs": cls.__dict__.get("_rhs", cls._rhs)}
-    if cls._jac is not BaseDyn._jac:
-        attrs["_jac"] = cls.__dict__.get("_jac", cls._jac)
-    for name in ("_rhs", "_jac"):
-        # staticmethods must be re-wrapped when copied out of a class dictionary
-        if name in attrs and not isinstance(attrs[name], staticmethod):
-            attrs[name] = staticmethod(attrs[name])
-    raw_cls = type(cls.__name__ + "Raw", (DynSys,), attrs)
-    raw = raw_cls(
-        metadata_path=None,
-        parameters={k: v for k, v in eq.params.items()},
-        initial_conditions=np.array(eq.ic),
-        embedding_dimension=len(eq.ic),
-        dt=eq.dt,
-        period=eq.period,
-    )
-    raw.name = eq.name
-    return raw
 
 
 def make_system(
@@ -432,74 +405,6 @@ def multiscale_entropy(traj: np.ndarray) -> float:
     return float(np.median(vals))
 
 
-def mean_jacobian_trace(eq: DynSys, n: int = 20000, pts_per_period: int = 100) -> float:
-    """
-    Time average of the trace of the Jacobian along a trajectory. For a flow this equals
-    the sum of the Lyapunov exponents, which gives a parameter-free consistency check
-    on a numerically estimated spectrum.
-    """
-    tpts, sol = eq.make_trajectory(
-        n,
-        resample=True,
-        return_times=True,
-        postprocess=False,
-        pts_per_period=pts_per_period,
-        **FAST_INTEGRATOR,
-    )
-    has_jac = type(eq)._jac is not BaseDyn._jac
-    traces = []
-    for t, X in zip(tpts, sol):
-        if has_jac:
-            J = np.array(eq.jac(X, t), dtype=float)
-        else:
-            J = jac_fd(lambda x: np.array(eq.rhs(x, t)), X)
-        traces.append(np.trace(J))
-    return float(np.mean(traces))
-
-
-QR_RESOLUTIONS = (500, 1000, 2000, 4000, 8000)
-
-
-def choose_qr_resolution(
-    raw: DynSys,
-    trace: float,
-    pts_per_trajectory: int = 3000,
-    integrator: dict[str, Any] | None = None,
-    rel_tol: float = 0.1,
-    zero_tol: float = 0.1,
-    verbose: bool = False,
-) -> int:
-    """
-    Pick the sampling density (points per period) of the QR Lyapunov estimate by
-    increasing it until (i) the sum of the estimated spectrum matches the mean Jacobian
-    trace and (ii) one exponent is close to zero, as it must be for a flow. The
-    backward-Euler propagation used by ``find_lyapunov_exponents`` is only first-order
-    accurate, so spiky or stiff systems need finer steps.
-    """
-    integrator = dict(ACCURATE_INTEGRATOR if integrator is None else integrator)
-    chosen = QR_RESOLUTIONS[-1]
-    for ppp in QR_RESOLUTIONS:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            lyap = find_lyapunov_exponents(
-                raw,
-                5 * pts_per_trajectory * ppp // 500,
-                pts_per_period=ppp,
-                **integrator,
-            )
-        err = abs(np.sum(lyap) - trace) / max(abs(trace), abs(lyap).max(), 1e-12)
-        zero_err = np.min(np.abs(lyap)) / max(np.max(lyap), 1e-12)
-        _log(
-            verbose,
-            f"  QR {ppp} pts/period: lyap={np.round(lyap, 4).tolist()} sum={np.sum(lyap):.4g} "
-            f"trace={trace:.4g} rel err={err:.3f} zero err={zero_err:.3f}",
-        )
-        if err < rel_tol and zero_err < zero_tol:
-            chosen = ppp
-            break
-    return chosen
-
-
 def lyapunov_spectrum_variational(
     eq: DynSys,
     x0: np.ndarray,
@@ -508,217 +413,136 @@ def lyapunov_spectrum_variational(
     integrator: dict[str, Any] | None = None,
 ) -> np.ndarray:
     """
-    Lyapunov spectrum from the variational equations: the state and a d x d tangent
-    matrix are integrated together with the analytic Jacobian by the same adaptive
-    high-order solver, and the tangent matrix is re-orthonormalized (QR) every
-    ``dt_renorm``. Unlike the first-order backward-Euler propagation in
-    ``find_lyapunov_exponents``, its accuracy is set by the solver tolerances, so it
-    stays accurate for stiff, spiking and slow-fast systems.
+    Deprecated: use :func:`dysts.analysis.lyapunov_spectrum`.
+
+    Variational spectrum from a single run of length ``t_total`` starting at ``x0``,
+    re-orthonormalized every ``dt_renorm``.
     """
-    integrator = dict(ACCURATE_INTEGRATOR if integrator is None else integrator)
-    x0 = np.asarray(x0, dtype=float)
-    d = len(x0)
-
-    def augmented(t, z):
-        x = z[:d]
-        v = z[d:].reshape(d, d)
-        f = np.asarray(eq.rhs(x, t), dtype=float)
-        jac = np.asarray(eq.jac(x, t), dtype=float)
-        return np.concatenate([f, (jac @ v).ravel()])
-
-    n_steps = max(int(np.ceil(t_total / dt_renorm)), 1)
-    z = np.concatenate([x0, np.eye(d).ravel()])
-    t, sums = 0.0, np.zeros(d)
-    for _ in range(n_steps):
-        sol = solve_ivp(augmented, (t, t + dt_renorm), z, **integrator)
-        if not sol.success or not np.all(np.isfinite(sol.y[:, -1])):
-            return np.full(d, np.nan)
-        z = sol.y[:, -1]
-        t += dt_renorm
-        q, r = np.linalg.qr(z[d:].reshape(d, d))
-        sums += np.log(np.abs(np.diag(r)))
-        z = np.concatenate([z[:d], q.ravel()])
-    return np.sort(sums / (n_steps * dt_renorm))[::-1]
+    warnings.warn(
+        "dysts.pipeline.lyapunov_spectrum_variational is deprecated; use "
+        "dysts.analysis.lyapunov_spectrum.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    n_periods = t_total / eq.period
+    return lyapunov_spectrum(
+        eq,
+        n_runs=1,
+        n_periods=n_periods,
+        transient_periods=0.0,
+        block_periods=min(25.0, n_periods),
+        dt_renorm=dt_renorm,
+        initial_conditions=x0,
+        integrator=integrator,
+    )
 
 
 def estimate_invariants(
     eq: DynSys,
-    n_samples: int = 20,
+    n_runs: int = 4,
+    n_periods: float = 1000.0,
+    spectrum_method: str = "variational",
+    n_dimension_samples: int = 20,
     pts_per_trajectory: int = 3000,
-    divide_dt: int = 10,
     n_gp: int = 4000,
     integrator: dict[str, Any] | None = None,
-    qr_pts_per_period: int | None = None,
-    spectrum_method: str = "auto",
-    variational_periods: float = 150.0,
-    renorms_per_period: int = 5,
+    max_walltime: float | None = None,
     verbose: bool = False,
 ) -> dict[str, Any]:
     """
-    Ensemble estimate of the Lyapunov spectrum, Kaplan-Yorke dimension, Pesin entropy,
-    correlation dimension and multiscale entropy. Estimates are averaged with weights
-    that favour samples whose middle exponent is closest to zero.
+    Lyapunov spectrum, largest Lyapunov exponent, Kaplan-Yorke dimension, Pesin entropy,
+    correlation dimension and multiscale entropy.
 
-    ``spectrum_method`` is "variational" (tangent dynamics integrated with the analytic
-    Jacobian, see :func:`lyapunov_spectrum_variational`), "qr" (the package's
-    backward-Euler QR, ``find_lyapunov_exponents``, with adaptive step resolution), or
-    "auto", which uses "variational" whenever the system has an analytic Jacobian.
+    The spectrum comes from :func:`dysts.analysis.lyapunov_spectrum` with ``n_runs`` runs
+    of ``n_periods`` each. ``spectrum_method`` is "variational" (tangent dynamics with the
+    analytic Jacobian, or finite differences when there is none) or "clones" (finite
+    perturbations, for right-hand sides with discontinuities). The Kaplan-Yorke dimension
+    and Pesin entropy follow from the mean spectrum. The correlation dimension and
+    multiscale entropy are averaged over ``n_dimension_samples`` postprocessed
+    trajectories that start from random points on the attractor.
+
+    ``integrator`` sets the ``solve_ivp`` options for every integration; by default the
+    spectrum uses the method's own defaults (``LYAPUNOV_INTEGRATOR`` or
+    ``CLONE_INTEGRATOR``) and the trajectories use ``ACCURATE_INTEGRATOR``.
     """
-    integrator = dict(ACCURATE_INTEGRATOR if integrator is None else integrator)
-    raw = _raw_copy(eq)
-    ic_backup = np.array(eq.ic)
-    trace = mean_jacobian_trace(raw)
-    sample_pts = sample_initial_conditions(raw, n_samples, **integrator)
-    est_lyap, est_corr, est_mse = [], [], []
-    raw.dt /= divide_dt
-    if spectrum_method == "auto":
-        spectrum_method = "variational" if type(eq)._jac is not BaseDyn._jac else "qr"
+    traj_integrator = dict(ACCURATE_INTEGRATOR if integrator is None else integrator)
     _log(verbose, f"  spectrum method: {spectrum_method}")
-    if spectrum_method == "qr" and qr_pts_per_period is None:
-        raw.ic = sample_pts[0]
-        qr_pts_per_period = choose_qr_resolution(
-            raw, trace, pts_per_trajectory, integrator=integrator, verbose=verbose
-        )
-        _log(
-            verbose,
-            f"  using {qr_pts_per_period} points per period for the QR estimate",
-        )
-    if spectrum_method == "qr":
-        n_qr = 5 * pts_per_trajectory * qr_pts_per_period // 500
-    else:
-        # Renormalize often enough that the most contracting direction shrinks by at most
-        # ~e^2 between QR steps; otherwise the tangent vectors become numerically parallel
-        # and the most negative exponents are lost to round-off.
-        dt_renorm = eq.period / renorms_per_period
-        if abs(trace) > 0:
-            dt_renorm = min(dt_renorm, 2.0 / abs(trace))
-        _log(verbose, f"  renormalization interval {dt_renorm:.4g}")
-    for j, pt in enumerate(sample_pts):
-        _log(verbose, f"  sample {j + 1}/{n_samples}")
-        raw.ic = pt
+    lyap = lyapunov_spectrum(
+        eq,
+        n_runs=n_runs,
+        n_periods=n_periods,
+        method=spectrum_method,
+        integrator=integrator,
+        max_walltime=max_walltime,
+        full_output=True,
+    )
+    spectrum = np.asarray(lyap["spectrum"])
+    _log(
+        verbose,
+        f"  spectrum {np.round(spectrum, 4).tolist()} +/- "
+        f"{np.round(lyap['standard_error'], 4).tolist()} "
+        f"({lyap['periods_integrated']:.0f} periods, {lyap['jacobian']} Jacobian)",
+    )
+
+    ic_backup = np.array(eq.ic)
+    sample_pts = sample_initial_conditions(eq, n_dimension_samples, **traj_integrator)
+    est_corr, est_mse = [], []
+    for pt in sample_pts:
+        eq.ic = pt
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            if spectrum_method == "variational":
-                lyap = lyapunov_spectrum_variational(
-                    raw,
-                    pt,
-                    variational_periods * eq.period,
-                    dt_renorm,
-                    integrator=integrator,
-                )
-            else:
-                lyap = find_lyapunov_exponents(
-                    raw, n_qr, pts_per_period=qr_pts_per_period, **integrator
-                )
-            # dimensions and entropy are computed on the postprocessed (bounded)
-            # trajectory, consistent with the rest of the database
-            eq.ic = pt
             sol = eq.make_trajectory(
                 3 * pts_per_trajectory,
                 resample=True,
                 pts_per_period=100,
                 postprocess=True,
-                **integrator,
+                **traj_integrator,
             )
-        if sol is None or not np.all(np.isfinite(lyap)):
+        if sol is None or not np.all(np.isfinite(sol)):
             continue
-        est_lyap.append(lyap)
         try:
             idx = np.linspace(0, len(sol) - 1, min(n_gp, len(sol))).astype(int)
             est_corr.append(gp_dim(sol[idx]))
         except Exception:
             est_corr.append(np.nan)
         est_mse.append(multiscale_entropy(sol[:pts_per_trajectory]))
-    raw.dt *= divide_dt
     eq.ic = ic_backup
 
-    est_lyap = np.array(est_lyap)
-    weights = np.exp(-np.min(np.abs(est_lyap), axis=1) * 1000)
-    weights /= np.sum(weights)
-    lyap = np.sum(weights[:, None] * est_lyap, axis=0)
-    est_corr = np.array(est_corr, dtype=float)
-    good = np.isfinite(est_corr)
-    corr = (
-        float(np.sum(weights[good] * est_corr[good]) / np.sum(weights[good]))
-        if np.any(good)
-        else float("nan")
-    )
+    finite = lambda v: np.asarray(v, dtype=float)[np.isfinite(v)]  # noqa: E731
+    corr, mse = finite(est_corr), finite(est_mse)
     return {
-        "lyapunov_spectrum_estimated": [float(v) for v in lyap],
-        "kaplan_yorke_dimension": float(
-            np.sum(weights * np.array([kaplan_yorke_dimension(v) for v in est_lyap]))
-        ),
-        "pesin_entropy": float(
-            np.sum(weights * np.array([np.sum(v[v > 0]) for v in est_lyap]))
-        ),
-        "correlation_dimension": corr,
-        "multiscale_entropy": float(np.sum(weights * np.array(est_mse))),
-        "_lyapunov_samples": est_lyap.tolist(),
-        "_jacobian_trace_mean": trace,
-        "_qr_pts_per_period": None
-        if qr_pts_per_period is None
-        else int(qr_pts_per_period),
-        "_spectrum_method": spectrum_method,
+        "lyapunov_spectrum_estimated": [float(v) for v in spectrum],
+        "maximum_lyapunov_estimated": float(spectrum[0]),
+        "kaplan_yorke_dimension": float(kaplan_yorke_dimension(spectrum)),
+        "pesin_entropy": float(np.sum(spectrum[spectrum > 0])),
+        "correlation_dimension": float(np.mean(corr)) if len(corr) else float("nan"),
+        "multiscale_entropy": float(np.mean(mse)) if len(mse) else float("nan"),
+        "_lyapunov": lyap,
     }
-
-
-def estimate_max_lyapunov_direct(
-    eq: DynSys,
-    n_samples: int = 40,
-    traj_length: int = 3000,
-    max_walltime: float = 120,
-    integrator: dict[str, Any] | None = None,
-) -> float:
-    """
-    Largest Lyapunov exponent from the divergence of nearby trajectories.
-
-    Only the integration ``method`` is forwarded: ``max_lyapunov_exponent`` uses the
-    names ``rtol`` and ``atol`` for the separation thresholds of the divergence fit,
-    so solver tolerances cannot be passed through it and the defaults (1e-12) are used.
-    """
-    integrator = dict(ACCURATE_INTEGRATOR if integrator is None else integrator)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        val = max_lyapunov_exponent(
-            eq,
-            max_walltime=max_walltime,
-            n_samples=n_samples,
-            traj_length=traj_length,
-            method=integrator.get("method", "Radau"),
-        )
-    return float("nan") if val is None else float(val)
 
 
 # --------------------------------------------------------------------------- checks
 
 
 def flag_suspicious(entry: dict[str, Any]) -> list[str]:
-    """Return human-readable warnings about inconsistent invariants."""
+    """
+    Return human-readable warnings about inconsistent invariants in a database entry.
+    The checks are: a positive largest exponent, one near-zero exponent (as for any
+    flow), and Kaplan-Yorke and correlation dimensions inside the phase space and
+    within 0.5 of each other. Cross-checks that need the dynamics (the clone-method
+    spectrum and the mean Jacobian trace) are made by :func:`add_system`.
+    """
     flags = []
     lyap = np.array(entry["lyapunov_spectrum_estimated"])
     d = entry["embedding_dimension"]
-    lmax_qr = float(np.max(lyap))
-    lmax_direct = entry["maximum_lyapunov_estimated"]
-    if lmax_qr <= 0:
-        flags.append(f"largest spectrum exponent is not positive ({lmax_qr:.3g})")
-    if np.isfinite(lmax_direct):
-        if lmax_direct <= 0:
-            flags.append(
-                f"direct Lyapunov estimate is not positive ({lmax_direct:.3g})"
-            )
-        elif lmax_qr > 0:
-            ratio = lmax_direct / lmax_qr
-            if ratio < 0.5 or ratio > 2.0:
-                flags.append(
-                    f"direct ({lmax_direct:.3g}) and spectrum ({lmax_qr:.3g}) Lyapunov estimates disagree by {ratio:.2f}x"
-                )
-    else:
-        flags.append("direct Lyapunov estimate failed")
-    if d >= 3 and lmax_qr > 0:
+    lmax = float(np.max(lyap))
+    if lmax <= 0:
+        flags.append(f"largest Lyapunov exponent is not positive ({lmax:.3g})")
+    if d >= 3 and lmax > 0:
         middle = np.sort(np.abs(lyap))[0]
-        if middle > 0.15 * lmax_qr:
+        if middle > 0.15 * lmax:
             flags.append(
-                f"no near-zero exponent: smallest |lambda| = {middle:.3g} vs lambda_max = {lmax_qr:.3g}"
+                f"no near-zero exponent: smallest |lambda| = {middle:.3g} vs lambda_max = {lmax:.3g}"
             )
     ky = entry["kaplan_yorke_dimension"]
     cd = entry["correlation_dimension"]
@@ -793,9 +617,12 @@ def add_system(
     reference: DynSys | None = None,
     database_path: str = DATAPATH_CONTINUOUS,
     write: bool = True,
-    n_ic_samples: int = 20,
-    n_direct_samples: int = 40,
+    n_runs: int = 4,
+    n_periods: float = 1000.0,
+    spectrum_method: str = "variational",
+    crosscheck_periods: float = 200.0,
     integrator: dict[str, Any] | None = None,
+    max_walltime: float | None = None,
     verbose: bool = True,
     plot_path: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -813,16 +640,24 @@ def add_system(
             (Rossler by default).
         database_path: JSON database to update.
         write: Whether to write the entry into ``database_path``.
-        n_ic_samples: Ensemble size for the QR Lyapunov / dimension estimates.
-        n_direct_samples: Ensemble size for the direct largest-Lyapunov estimate.
+        n_runs, n_periods: Number and length (in periods) of the Lyapunov runs, see
+            :func:`dysts.analysis.lyapunov_spectrum`.
+        spectrum_method: "variational" (default; uses the analytic Jacobian, or finite
+            differences when the class has none) or "clones" (finite perturbations).
+            Use "clones" when the right-hand side is discontinuous (``sign``,
+            Heaviside or switching terms).
+        crosscheck_periods: Length of each of the two runs of the other method, whose
+            largest exponent is compared with the main estimate (0 to skip).
         integrator: solve_ivp settings for the invariant estimates (see
-            ``ACCURATE_INTEGRATOR``).
+            ``ACCURATE_INTEGRATOR``); pass LSODA or Radau for stiff systems.
+        max_walltime: Wall-clock limit in seconds for each Lyapunov run.
         verbose: Print progress.
         plot_path: If given, save a figure with the attractor and the aligned traces.
 
     Returns:
         entry: The database entry (JSON-serialisable dictionary).
-        report: Diagnostics: timescale history, per-sample Lyapunov spectra and flags.
+        report: Diagnostics: timescale history, the full Lyapunov output (standard
+            errors, per-run values, block averages), the cross-check and flags.
     """
     eq = make_system(system_class, parameters, initial_conditions)
     report: dict[str, Any] = {"name": eq.name}
@@ -850,19 +685,22 @@ def add_system(
     mean, std = estimate_moments(eq, unbounded)
     _log(verbose, f"  ic={np.round(eq.ic, 4).tolist()} unbounded={unbounded}")
 
-    _log(
-        verbose,
-        f"[{eq.name}] Lyapunov spectrum and dimensions ({n_ic_samples} samples)",
-    )
+    _log(verbose, f"[{eq.name}] Lyapunov spectrum and dimensions")
     invariants = estimate_invariants(
-        eq, n_samples=n_ic_samples, integrator=integrator, verbose=verbose
+        eq,
+        n_runs=n_runs,
+        n_periods=n_periods,
+        spectrum_method=spectrum_method,
+        integrator=integrator,
+        max_walltime=max_walltime,
+        verbose=verbose,
     )
-    report["lyapunov_samples"] = invariants.pop("_lyapunov_samples")
-    report["jacobian_trace_mean"] = invariants.pop("_jacobian_trace_mean")
-    report["qr_pts_per_period"] = invariants.pop("_qr_pts_per_period")
-    report["spectrum_method"] = invariants.pop("_spectrum_method")
-    lyap_sum = float(np.sum(invariants["lyapunov_spectrum_estimated"]))
-    lyap_max = float(np.max(invariants["lyapunov_spectrum_estimated"]))
+    lyap = invariants.pop("_lyapunov")
+    report["lyapunov"] = lyap
+    report["jacobian_trace_mean"] = lyap["mean_jacobian_trace"]
+    spectrum = np.asarray(lyap["spectrum"])
+    se = np.asarray(lyap["standard_error"])
+    lyap_sum, lyap_max = float(np.sum(spectrum)), float(spectrum[0])
     if hamiltonian:
         # conservative: the exponents should sum to zero
         if abs(lyap_sum) > 0.1 * max(abs(lyap_max), 1e-12):
@@ -880,16 +718,38 @@ def add_system(
             f"sum of Lyapunov exponents {lyap_sum:.4g} differs from mean Jacobian trace "
             f"{report['jacobian_trace_mean']:.4g} by {100 * trace_err:.0f}%"
         )
+    by_run = np.asarray(lyap["max_exponent_by_run"])
+    if len(by_run) > 1 and np.ptp(by_run) > 0.25 * abs(lyap_max) + 6 * se[0]:
+        report.setdefault("flags", []).append(
+            f"largest exponent varies between runs ({np.round(by_run, 4).tolist()}): "
+            "coexisting attractors, a long transient or intermittency"
+        )
 
-    _log(
-        verbose,
-        f"[{eq.name}] direct largest Lyapunov exponent ({n_direct_samples} samples)",
-    )
-    ic_backup = np.array(eq.ic)
-    lmax_direct = estimate_max_lyapunov_direct(
-        eq, n_samples=n_direct_samples, integrator=integrator
-    )
-    eq.ic = ic_backup
+    if crosscheck_periods > 0:
+        other = "clones" if spectrum_method == "variational" else "variational"
+        _log(verbose, f"[{eq.name}] cross-check with the {other} method")
+        check = lyapunov_spectrum(
+            eq,
+            n_runs=2,
+            n_periods=crosscheck_periods,
+            method=other,
+            integrator=integrator if other == "variational" else None,
+            max_walltime=max_walltime,
+            full_output=True,
+        )
+        report["crosscheck"] = check
+        c_max, c_se = float(check["spectrum"][0]), float(check["standard_error"][0])
+        tol = 3 * np.hypot(se[0], c_se) + 0.1 * max(abs(lyap_max), abs(c_max))
+        if not np.isfinite(c_max) or abs(c_max - lyap_max) > tol:
+            hint = (
+                "; if the right-hand side is discontinuous, use spectrum_method='clones'"
+                if other == "clones"
+                else ""
+            )
+            report.setdefault("flags", []).append(
+                f"{spectrum_method} ({lyap_max:.4g}) and {other} ({c_max:.4g}) largest "
+                f"exponents disagree{hint}"
+            )
 
     entry: dict[str, Any] = {
         "bifurcation_parameter": bifurcation_parameter,
@@ -901,7 +761,6 @@ def add_system(
         "embedding_dimension": int(len(eq.ic)),
         "hamiltonian": bool(hamiltonian),
         "initial_conditions": [float(v) for v in eq.ic],
-        "maximum_lyapunov_estimated": lmax_direct,
         "mean": [float(v) for v in mean],
         "nonautonomous": bool(nonautonomous),
         "parameters": {k: _jsonable(v) for k, v in parameters.items()},
@@ -914,11 +773,10 @@ def add_system(
     assert set(entry) == set(DATABASE_FIELDS), set(entry) ^ set(DATABASE_FIELDS)
 
     report["flags"] = report.get("flags", []) + flag_suspicious(entry)
-    report["lyapunov_qr_max"] = float(np.max(entry["lyapunov_spectrum_estimated"]))
     _log(
         verbose,
         f"[{eq.name}] lyap={np.round(entry['lyapunov_spectrum_estimated'], 4).tolist()} "
-        f"direct={lmax_direct:.4g} D_KY={entry['kaplan_yorke_dimension']:.3f} "
+        f"+/- {np.round(se, 4).tolist()} D_KY={entry['kaplan_yorke_dimension']:.3f} "
         f"D_corr={entry['correlation_dimension']:.3f} MSE={entry['multiscale_entropy']:.3f} "
         f"sum(lyap)={np.sum(entry['lyapunov_spectrum_estimated']):.4g} "
         f"trace={report['jacobian_trace_mean']:.4g}",

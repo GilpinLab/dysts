@@ -7,8 +7,13 @@ import unittest
 
 import numpy as np
 
-from dysts.analysis import kaplan_yorke_dimension
-from dysts.flows import Lorenz, Rossler
+from dysts.analysis import (
+    find_lyapunov_exponents,
+    kaplan_yorke_dimension,
+    lyapunov_spectrum,
+    max_lyapunov_exponent,
+)
+from dysts.flows import Lorenz, Rossler, SprottB
 from dysts.pipeline import (
     align_period,
     dominant_period_in_samples,
@@ -17,6 +22,7 @@ from dysts.pipeline import (
     make_system,
     points_per_oscillation,
 )
+from dysts.utils import jac_fd
 
 
 class TestPipeline(unittest.TestCase):
@@ -52,14 +58,43 @@ class TestPipeline(unittest.TestCase):
         achieved = dominant_period_in_samples(eq)
         self.assertLess(abs(achieved / target - 1), 0.25)
 
-    def test_variational_spectrum_lorenz(self):
-        """The variational spectrum recovers the known Lorenz exponents."""
-        eq = Lorenz()
-        x0 = eq.make_trajectory(300, resample=True, postprocess=False)[-1]
-        lyap = lyapunov_spectrum_variational(eq, x0, 150 * eq.period, eq.period / 5)
-        self.assertAlmostEqual(lyap[0], 0.906, delta=0.08)
+    def test_lyapunov_spectrum_lorenz(self):
+        """The variational spectrum recovers the known Lorenz exponents and their sum."""
+        res = lyapunov_spectrum(Lorenz(), n_runs=2, n_periods=150, full_output=True)
+        lyap, se = res["spectrum"], res["standard_error"]
+        self.assertEqual(res["jacobian"], "analytic")
+        self.assertAlmostEqual(lyap[0], 0.906, delta=max(4 * se[0], 0.04))
         self.assertLess(abs(lyap[1]), 0.02)
         self.assertAlmostEqual(lyap.sum(), -(10 + 1 + 8 / 3), delta=0.01)
+        self.assertEqual(len(res["max_exponent_by_run"]), 2)
+
+    def test_lyapunov_spectrum_fallbacks(self):
+        """Finite-difference Jacobians and the clone method agree with the analytic case."""
+        eq = SprottB()  # published largest exponent 0.210 (Sprott 1994)
+        for kw in ({"jacobian": "finite_difference"}, {"method": "clones"}):
+            res = lyapunov_spectrum(eq, n_runs=1, n_periods=200, full_output=True, **kw)
+            self.assertAlmostEqual(res["spectrum"][0], 0.210, delta=0.03, msg=str(kw))
+            self.assertAlmostEqual(res["spectrum"].sum(), -1.0, delta=0.01, msg=str(kw))
+
+    def test_jac_fd(self):
+        """Central differences match the analytic Jacobian to high accuracy."""
+        eq = Lorenz()
+        x = np.array([3.0, -40.0, 25.0])
+        ja = np.array(eq.jac(x, 0.0))
+        jf = jac_fd(lambda y: np.array(eq.rhs(y, 0.0)), x)
+        self.assertTrue(np.allclose(ja, jf, rtol=1e-7, atol=1e-6))
+
+    def test_deprecated_lyapunov_functions(self):
+        """Retired estimators warn and return the variational result."""
+        eq = Lorenz()
+        with self.assertWarns(DeprecationWarning):
+            lyap = find_lyapunov_exponents(eq, 100 * 500, pts_per_period=500)
+        self.assertAlmostEqual(lyap[0], 0.906, delta=0.1)
+        with self.assertWarns(DeprecationWarning):
+            lyap = lyapunov_spectrum_variational(eq, eq.ic, 50 * eq.period, eq.period / 5)
+        self.assertAlmostEqual(lyap.sum(), -(10 + 1 + 8 / 3), delta=0.05)
+        with self.assertWarns(DeprecationWarning):
+            self.assertGreater(max_lyapunov_exponent(eq, max_walltime=60), 0.5)
 
     def test_kaplan_yorke_all_negative(self):
         """A fixed point (all exponents negative) has dimension zero."""
@@ -72,15 +107,24 @@ class TestPipeline(unittest.TestCase):
         entry = {
             "embedding_dimension": 3,
             "lyapunov_spectrum_estimated": [0.9, 0.0, -14.6],
-            "maximum_lyapunov_estimated": 0.85,
+            "maximum_lyapunov_estimated": 0.9,
             "kaplan_yorke_dimension": 2.06,
             "correlation_dimension": 2.0,
         }
         self.assertEqual(flag_suspicious(entry), [])
-        bad = dict(entry, maximum_lyapunov_estimated=0.1, kaplan_yorke_dimension=3.5)
+        bad = dict(
+            entry,
+            lyapunov_spectrum_estimated=[0.9, -0.5, -14.6],
+            kaplan_yorke_dimension=3.5,
+        )
         flags = flag_suspicious(bad)
-        self.assertTrue(any("disagree" in f for f in flags))
+        self.assertTrue(any("near-zero" in f for f in flags))
         self.assertTrue(any("Kaplan-Yorke" in f for f in flags))
+        self.assertTrue(
+            any("not positive" in f for f in flag_suspicious(
+                dict(entry, lyapunov_spectrum_estimated=[0.0, -0.1, -1.0])
+            ))
+        )
         # conservative systems legitimately have Kaplan-Yorke dimension equal to d
         conservative = dict(entry, hamiltonian=True, kaplan_yorke_dimension=3.0)
         self.assertFalse(

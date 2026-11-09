@@ -8,7 +8,6 @@ import warnings
 import numpy as np
 from numpy.fft import rfft
 from scipy.ndimage import gaussian_filter1d
-from scipy.optimize import approx_fprime
 from scipy.signal import periodogram
 from scipy.signal.windows import blackmanharris
 
@@ -290,30 +289,48 @@ def find_significant_frequencies(
         return freqs
 
 
-def jac_fd(func0, y0, eps=1e-3, m=1, method="central", verbose=False):
+def jac_fd(func0, y0, eps=None, m=1, method="central", verbose=False):
     """
     Calculate numerical jacobian of a function with respect to a reference value
 
     Args:
         func (callable): a vector-valued function
         y0 (ndarray): a point around which to take the gradient
-        eps (float): the step size for the finite difference calculation
+        eps (float or None): the absolute step size for the finite difference
+            calculation. The default scales the step with each coordinate,
+            ``h_i = s * max(1, |y0_i|)``, with ``s`` near the optimum for the chosen
+            method (6e-6 for central, 1.5e-8 for forward differences).
+        m (int): unused; kept for backwards compatibility.
+        method (str): "central" (second-order, 2d evaluations) or "forward"
+            (first-order, d + 1 evaluations).
 
     Returns:
-        jac (ndarray): a numerical estimate of the Jacobian about that point
+        jac (ndarray): a numerical estimate of the Jacobian about that point,
+            with ``jac[i, j] = d func_i / d y_j``
 
     """
-    func = lambda x: np.array(func0(x))  # ensure an ndarray returned
-    y0 = np.array(y0)  # ensure an ndarray input
-
+    y0 = np.array(y0, dtype=float)
     d = len(y0)
-    all_rows = list()
-    for i in range(d):
-        row_func = lambda yy: func(yy)[i]
-        row = approx_fprime(y0, row_func, epsilon=eps)
-        all_rows.append(row)
-    jac = np.array(all_rows)
-
+    if eps is None:
+        scale = 6e-6 if method == "central" else 1.5e-8
+        h = scale * np.maximum(1.0, np.abs(y0))
+    else:
+        h = np.full(d, float(eps))
+    jac = np.empty((len(np.atleast_1d(func0(y0))), d))
+    f0 = None if method == "central" else np.asarray(func0(y0), dtype=float)
+    for j in range(d):
+        yp = y0.copy()
+        yp[j] += h[j]
+        if method == "central":
+            ym = y0.copy()
+            ym[j] -= h[j]
+            jac[:, j] = (
+                np.asarray(func0(yp), dtype=float) - np.asarray(func0(ym), dtype=float)
+            ) / (2 * h[j])
+        elif method == "forward":
+            jac[:, j] = (np.asarray(func0(yp), dtype=float) - f0) / h[j]
+        else:
+            raise ValueError(f"unknown finite-difference method {method!r}")
     return jac
 
 
