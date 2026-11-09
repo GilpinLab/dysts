@@ -37,7 +37,8 @@ class SignedGaussianParamSampler(BaseSampler):
     """Sample gaussian perturbations for system parameters with sign control
 
     Args:
-        scale: std (isotropic) of gaussian used for sampling
+        scale: std of the gaussian perturbation, relative to the magnitude of each parameter
+        eps: variance of the perturbation of parameters that are exactly zero
         sign_match_probability: probability of matching perturbation sign with parameter sign
             defaults to 0.0 (never match signs, matching previous deprecated GaussianParamSampler behavior)
     """
@@ -67,7 +68,9 @@ class SignedGaussianParamSampler(BaseSampler):
         # avoid shape errors
         flat_param = np.array(param, dtype=np.float32).flatten()
         scale = np.abs(flat_param) * self.scale
-        cov = np.diag(np.square(scale) + self.eps)
+        # an absolute floor would swamp small nonzero parameters (some are ~1e-6) and flip
+        # their signs, so eps only applies to parameters that are exactly zero
+        cov = np.diag(np.where(flat_param == 0, self.eps, np.square(scale)))
         perturbation = self.rng.multivariate_normal(
             mean=np.zeros_like(flat_param), cov=cov
         ).reshape(shape)

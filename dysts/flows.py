@@ -744,12 +744,35 @@ class OscillatingFlow(DynSys):
 class BickleyJet(DynSys):
     @staticjit
     def _rhs(y, x, z, t, ell, eps, k, omega, sigma, u):
+        # (dx, dy) = (-psi_y, psi_x) for the stream function
+        # psi = -u ell tanh(y / ell) + u ell sech^2(y / ell) sum_n eps_n cos(k_n (x - sigma_n z))
         sechy = 1 / np.cosh(y / ell)
         un = k * (x - z * sigma)
-        dx = u * sechy**2 * (-1 - 2 * np.dot(np.cos(un), eps) * np.tanh(y / ell))
-        dy = ell * u * sechy**2 * np.dot(eps * k, np.sin(un))
+        dx = u * sechy**2 * (1 + 2 * np.dot(np.cos(un), eps) * np.tanh(y / ell))
+        dy = -ell * u * sechy**2 * np.dot(eps * k, np.sin(un))
         dz = omega
         return dy, dx, dz
+
+    @staticjit
+    def _jac(y, x, z, t, ell, eps, k, omega, sigma, u):
+        s2 = 1 / np.cosh(y / ell) ** 2
+        th = np.tanh(y / ell)
+        un = k * (x - z * sigma)
+        cos_un, sin_un = np.cos(un), np.sin(un)
+        s0 = np.dot(eps, cos_un)
+        s1 = np.dot(eps * k, sin_un)
+        row1 = [
+            2 * u * s2 * th * s1,
+            -ell * u * s2 * np.dot(eps * k**2, cos_un),
+            ell * u * s2 * np.dot(eps * k**2 * sigma, cos_un),
+        ]
+        row2 = [
+            u * s2 / ell * (2 * s2 * s0 - 2 * th * (1 + 2 * th * s0)),
+            -2 * u * s2 * th * s1,
+            2 * u * s2 * th * np.dot(eps * k * sigma, sin_un),
+        ]
+        row3 = [0.0, 0.0, 0.0]
+        return row1, row2, row3
 
     def _postprocessing(self, x, y, z):
         km = np.min(self.k)

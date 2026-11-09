@@ -689,24 +689,30 @@
   "BickleyJet": {
     "bifurcation_parameter": null,
     "citation": "Hadjighasem, Karrasch, Teramoto, Haller (2016). A Spectral Clustering Approach to Lagrangian Vortex Detection Phys Rev E.",
-    "correlation_dimension": 2.0025138386006334,
-    "description": "A zonal jet passing between two counter rotating vortices. A steady Hamiltonian with a time-dependent perturbation.",
-    "dt": 17.56824204034172,
+    "doi": "10.1103/physreve.93.063107",
+    "correlation_dimension": 2.261100606152307,
+    "description": "A zonal jet passing between two rows of counter-rotating vortices: a steady Hamiltonian with three travelling-wave perturbations. Lengths in Mm and time in days; the zonal coordinate is periodic with period 2 pi / k1 (20 Mm). The stored initial condition is in the chaotic sea of the northern vortex row.",
+    "dt": 0.0009144855124685897,
     "embedding_dimension": 3,
     "hamiltonian": true,
     "initial_conditions": [
-      -0.4,
-      0.3,
-      0.0
+      2.54826477638723,
+      0.7516608000890344,
+      566.1259837962963
     ],
-    "kaplan_yorke_dimension": 4.066710025133773,
+    "kaplan_yorke_dimension": 3.0000000000316813,
     "lyapunov_spectrum_estimated": [
-      1.9651794377408363e-07,
-      2.5409880958463764e-09,
-      -9.631983584415862e-08
+      0.10814749400836503,
+      0.0,
+      -0.10814749400493877
     ],
-    "maximum_lyapunov_estimated": 3.0318672544949706e-06,
-    "multiscale_entropy": 0.733566708397195,
+    "maximum_lyapunov_estimated": 0.10814749400836503,
+    "mean": [
+      2.5347325273612196,
+      0.03633556412732694,
+      -0.0006522732782127566
+    ],
+    "multiscale_entropy": 1.1078258087735666,
     "nonautonomous": false,
     "parameters": {
       "ell": 1.77,
@@ -722,29 +728,23 @@
       ],
       "omega": 1,
       "sigma": [
-        9.05854e-06,
-        1.28453e-05,
-        2.88863e-05
+        0.782658,
+        1.109834,
+        2.495776
       ],
-      "u": 6.266e-05
+      "u": 5.413824
     },
-    "period": 97826.57,
-    "pesin_entropy": 1.99059498764899e-07,
+    "period": 4.5724275623429484,
+    "pesin_entropy": 0.10814749400836503,
+    "std": [
+      0.9394536334009593,
+      0.6989379098953148,
+      0.7086381515163548
+    ],
     "unbounded_indices": [
       1,
       2
-    ],
-    "mean": [
-      -0.9605968471373918,
-      -0.006379145809852358,
-      0.7202973999087104
-    ],
-    "std": [
-      0.2716765102127958,
-      0.6938001024499514,
-      0.27722033927821177
-    ],
-    "doi": "10.1103/physreve.93.063107"
+    ]
   },
   "Blasius": {
     "bifurcation_parameter": null,
@@ -2029,32 +2029,32 @@
     "bifurcation_parameter": null,
     "citation": "See, for example: Marion (2013). Classical dynamics of particles and systems.",
     "doi": "10.1016/b978-1-4832-5676-4.50003-2",
-    "correlation_dimension": 2.3832969372234687,
-    "description": "Two coupled rigid pendula without damping.",
-    "dt": 0.0008048141356891847,
+    "correlation_dimension": 2.365030208206785,
+    "description": "Two point masses on massless rigid rods, without damping. The state is the two angles from the downward vertical and their canonical momenta; the outer pendulum rotates over the top.",
+    "dt": 0.0003320426765799256,
     "embedding_dimension": 4,
     "hamiltonian": true,
     "initial_conditions": [
-      -44.334542,
-      223.53554,
+      -0.35224484974289366,
+      -2.6591310584651158,
       -1.2249799,
       2.535486
     ],
-    "kaplan_yorke_dimension": 3.9999999999854974,
+    "kaplan_yorke_dimension": 3.999999999986844,
     "lyapunov_spectrum_estimated": [
-      0.5167592677122701,
-      0.0014431181775905317,
-      -0.0013374133661172983,
-      -0.5168649725312393
+      0.5396786435838539,
+      0.0026161684513210273,
+      -0.0026232132833613657,
+      -0.5396715987589136
     ],
-    "maximum_lyapunov_estimated": 0.5167592677122701,
+    "maximum_lyapunov_estimated": 0.5396786435838539,
     "mean": [
-      -0.0005578835381555991,
-      1.3159327090369949e-05,
-      0.018157283146297432,
-      -0.08798621654680062
+      0.000252606501762689,
+      0.0002775904355930389,
+      0.1171477990080346,
+      0.006964487136041597
     ],
-    "multiscale_entropy": 0.5192629117950107,
+    "multiscale_entropy": 0.8249566244475552,
     "nonautonomous": false,
     "parameters": {
       "g": 9.81,
@@ -2063,13 +2063,13 @@
       "m1": 1.0,
       "m2": 1.0
     },
-    "period": 4.0234,
-    "pesin_entropy": 0.5182023858898607,
+    "period": 1.6602133828996282,
+    "pesin_entropy": 0.5422948120351749,
     "std": [
-      0.6361374902918914,
-      0.6958742713377897,
-      4.376729715936702,
-      3.0482663215122634
+      0.6688256419492454,
+      0.7210531697654154,
+      4.516076641791737,
+      2.951660997990722
     ],
     "unbounded_indices": []
   },
@@ -5026,10 +5026,10 @@
   },
   "KawczynskiStrizhak": {
     "bifurcation_parameter": null,
-    "citation": "P. E. Strizhak and A. L. Kawczynski, J. Phys. Chem. 99, 10830 (1995).",
+    "citation": "P. E. Strizhak and A. L. Kawczynski, J. Phys. Chem. 99, 10830 (1995). Equations as in Goryachev, Strizhak and Kapral (1997), Slow manifold structure and the emergence of mixed-mode oscillations, J. Chem. Phys. 107, 2881.",
     "doi": "10.1021/j100027a024",
     "correlation_dimension": 1.895445197775087,
-    "description": "A chemical oscillator model describing mixed-modes in the BZ equations.",
+    "description": "A three-variable extension of the Boissonade-De Kepper model, describing mixed-mode oscillations in the Belousov-Zhabotinsky reaction. Chaos occurs in narrow windows between mixed-mode states and is weak.",
     "dt": 0.0012743196894848274,
     "embedding_dimension": 3,
     "hamiltonian": false,
