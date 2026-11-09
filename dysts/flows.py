@@ -198,6 +198,10 @@ class ThomasLabyrinth(Thomas):
 class DoublePendulum(DynSys):
     @staticjit
     def _rhs(th1, th2, p1, p2, t, g, l1, l2, m1, m2):
+        # Hamilton's equations for
+        # H = N / (2 m2 l1^2 l2^2 S) - (m1 + m2) g l1 cos(th1) - m2 g l2 cos(th2), with
+        # S = m1 + m2 sin^2(th1 - th2) and
+        # N = m2 l2^2 p1^2 + (m1 + m2) l1^2 p2^2 - 2 m2 l1 l2 p1 p2 cos(th1 - th2)
         cos_diff = np.cos(th1 - th2)
         sin_diff = np.sin(th1 - th2)
         denom = l1 * l2 * (m1 + m2 * sin_diff**2)
@@ -206,9 +210,12 @@ class DoublePendulum(DynSys):
         th2dot = ((m1 + m2) * l1 * p2 - m2 * l2 * p1 * cos_diff) / (m2 * l2 * denom)
 
         h1 = p1 * p2 * sin_diff / denom
-        h2 = (m2 * l2 * p1**2) / (2 * l1 * denom**2)
-        h2 += 0.5 * m2 * p2 * l2 * l1 * th2dot / denom
-        h2 *= np.sin(2 * (th1 - th2))
+        num = (
+            m2 * l2**2 * p1**2
+            + (m1 + m2) * l1**2 * p2**2
+            - 2 * m2 * l1 * l2 * p1 * p2 * cos_diff
+        )
+        h2 = num * np.sin(2 * (th1 - th2)) / (2 * denom**2)
 
         p1dot = -(m1 + m2) * g * l1 * np.sin(th1) - h1 + h2
         p2dot = -m2 * g * l2 * np.sin(th2) + h1 - h2
@@ -222,67 +229,48 @@ class DoublePendulum(DynSys):
 
     @staticjit
     def _jac(th1, th2, p1, p2, t, g, l1, l2, m1, m2):
-        c0 = th1 - th2
-        c1 = np.sin(c0)
-        c2 = c1**2 * m2
-        c3 = c2 + m1
-        c4 = l1 * p2
-        c5 = l2 * p1
-        c6 = np.cos(c0)
-        c7 = 2 * c6
-        c8 = c3 * c4 + c7 * m2 * (c4 * c6 - c5)
-        c9 = l1**2
-        c10 = c9 ** (-1.0)
-        c11 = l2 ** (-1.0)
-        c12 = c3 ** (-2.0)
-        c13 = c11 * c12
-        c14 = c1 * c10 * c13
-        c15 = c3 ** (-1.0)
-        c16 = l1 ** (-1.0)
-        c17 = c11 * c16
-        c18 = c15 * c17 * c6
-        c19 = -c18
-        c20 = m1 + m2
-        c21 = c20 * c4
-        c22 = c6 * m2
-        c23 = -c22 * c5
-        c24 = c21 + c23
-        c25 = c3 * c5
-        c26 = -c24 * c7 + c25
-        c27 = l2 ** (-2.0)
-        c28 = c16 * c27
-        c29 = c12 * c28
-        c30 = c1 * c29
-        c31 = l1 ** (-3.0)
-        c32 = p1**2
-        c33 = c1 / c3**3
-        c34 = (
-            -0.5 * c1 * c11 * c12 * c16 * m2 * p1 * p2
-            + c11 * c31 * c32 * c33 * c7 * m2**2
-            + 2.0 * c22 * c24 * c28 * c33 * p2
-        )
-        c35 = 2 * th1 - 2 * th2
-        c36 = np.sin(c35)
-        c37 = c13 * c31
-        c38 = 2 * (0.5 * c24 * c29 * p2 + (1 / 2) * c32 * c37 * m2) * np.cos(c35)
-        c39 = p1 * p2
-        c40 = c18 * c39
-        c41 = c12 * c17 * c2 * c39 * c7
-        c42 = c38 - c40 + c41
-        c43 = -c34 * c36 + c42
-        c44 = c34 * c36
-        c45 = c9 * p2
-        c46 = c1 * c3 * c45 + c36 * m2 * (0.5 * c45 * c6 - p1)
-        c47 = c1 * c25 - 0.5 * c36 * (2 * c21 + c23)
-        row1 = [c14 * c8, -c14 * c8, c10 * c15, c19]
-        row2 = [c26 * c30, -c26 * c30, c19, c15 * c20 * c27 / m2]
-        row3 = [-c20 * g * l1 * np.cos(th1) + c43, -c42 + c44, -c37 * c46, -c29 * c47]
-        row4 = [
-            -c43,
-            c38 - c40 + c41 - c44 - g * l2 * m2 * np.cos(th2),
-            c37 * c46,
-            c29 * c47,
-        ]
+        x0 = 1/l1
+        x1 = l2*p1
+        x2 = th1 - th2
+        x3 = np.cos(x2)
+        x4 = l1*p2
+        x5 = x3*x4
+        x6 = m2*x3
+        x7 = np.sin(x2)
+        x8 = x7**2
+        x9 = m2*x8
+        x10 = m1 + x9
+        x11 = 1/x10
+        x12 = 2*x11
+        x13 = 1/l2
+        x14 = x0*x13
+        x15 = x11*x14
+        x16 = x15*x7
+        x17 = x16*(p2 + x0*x12*x6*(-x1 + x5))
+        x18 = -x17
+        x19 = l1**2
+        x20 = 1/x19
+        x21 = -x15*x3
+        x22 = m1 + m2
+        x23 = p1 - x12*x13*x3*(-x1*x6 + x22*x4)
+        x24 = x16*x23
+        x25 = -x16*x23
+        x26 = l2**2
+        x27 = 1/x26
+        x28 = x10**(-2)
+        x29 = x20*x27
+        x30 = m2*p1**2*x26 - 2*m2*x1*x5 + p2**2*x19*x22
+        x31 = x30*x8
+        x32 = x3**2
+        x33 = p1*p2*x3
+        x34 = x30*x32
+        x35 = 4*x9
+        x36 = -4*m2*p1*p2*x0*x13*x28*x3*x8 + x15*x33 - x20*x27*x28*x30*x32 + x28*x29*x31 + x29*x34*x35/x10**3
+        x37 = x15*(-x11*x33*x35 + x14*x28*x34*x35 + x15*x31 - x15*x34 + x33)
+        row1 = [x17, x18, x11*x20, x21]
+        row2 = [x24, x25, x21, x11*x22*x27/m2]
+        row3 = [-g*l1*x22*np.cos(th1) - x36, x37, x18, x25]
+        row4 = [x37, -g*l2*m2*np.cos(th2) - x36, x17, x24]
         return row1, row2, row3, row4
 
 
@@ -2475,12 +2463,10 @@ class TurchinHanski(DynSys):
 
 
 class StickSlipOscillator(DynSys):
-    def _t(self, v):
-        return self.t0 * np.sign(v) - self.alpha * v + self.beta * v**3
-
     @staticjit
-    def _rhs(x, v, th, t, a, alpha, b, beta, eps, gamma, t0, vs, w):
-        tq = t0 * np.sign(v - vs) - alpha * v + beta * (v - vs) ** 3
+    def _rhs(x, v, th, t, a, alpha, b, beta, eps, gamma, smoothing, t0, vs, w):
+        # Coulomb friction sign(v - vs) is smoothed to tanh((v - vs) / smoothing)
+        tq = t0 * np.tanh((v - vs) / smoothing) - alpha * v + beta * (v - vs) ** 3
         xdot = v
         vdot = eps * (gamma * np.cos(th) - tq) + a * x - b * x**3
         thdot = w
@@ -2491,11 +2477,12 @@ class StickSlipOscillator(DynSys):
         return x, v, np.cos(th)
 
     @staticjit
-    def _jac(x, v, th, t, a, alpha, b, beta, eps, gamma, t0, vs, w):
+    def _jac(x, v, th, t, a, alpha, b, beta, eps, gamma, smoothing, t0, vs, w):
+        sv = np.tanh((v - vs) / smoothing)
         row1 = [0, 1, 0]
         row2 = [
             a - 3 * b * x**2,
-            eps * (alpha - 3 * beta * (v - vs) ** 2),
+            eps * (alpha - 3 * beta * (v - vs) ** 2 - t0 * (1 - sv**2) / smoothing),
             -eps * gamma * np.sin(th),
         ]
         row3 = [0, 0, 0]

@@ -2028,7 +2028,8 @@
   "DoublePendulum": {
     "bifurcation_parameter": null,
     "citation": "See, for example: Marion (2013). Classical dynamics of particles and systems.",
-    "correlation_dimension": 2.6609798545500714,
+    "doi": "10.1016/b978-1-4832-5676-4.50003-2",
+    "correlation_dimension": 2.3832969372234687,
     "description": "Two coupled rigid pendula without damping.",
     "dt": 0.0008048141356891847,
     "embedding_dimension": 4,
@@ -2039,15 +2040,21 @@
       -1.2249799,
       2.535486
     ],
-    "kaplan_yorke_dimension": 3.810221473882809,
+    "kaplan_yorke_dimension": 3.9999999999854974,
     "lyapunov_spectrum_estimated": [
-      8.464443924343541,
-      0.46411672696182493,
-      -0.17345525567611142,
-      -10.805817517613212
+      0.5167592677122701,
+      0.0014431181775905317,
+      -0.0013374133661172983,
+      -0.5168649725312393
     ],
-    "maximum_lyapunov_estimated": 3.985298067514186,
-    "multiscale_entropy": 0.5591104791210428,
+    "maximum_lyapunov_estimated": 0.5167592677122701,
+    "mean": [
+      -0.0005578835381555991,
+      1.3159327090369949e-05,
+      0.018157283146297432,
+      -0.08798621654680062
+    ],
+    "multiscale_entropy": 0.5192629117950107,
     "nonautonomous": false,
     "parameters": {
       "g": 9.81,
@@ -2057,24 +2064,14 @@
       "m2": 1.0
     },
     "period": 4.0234,
-    "pesin_entropy": 8.928560651305366,
-    "unbounded_indices": [
-      0,
-      1
-    ],
-    "mean": [
-      -0.039383740626263306,
-      0.031669465853824824,
-      -0.5870858605039252,
-      -0.1112876657477346
-    ],
+    "pesin_entropy": 0.5182023858898607,
     "std": [
-      0.7404153308637927,
-      0.7302396046447902,
-      4.8551742805760405,
-      2.20279631684892
+      0.6361374902918914,
+      0.6958742713377897,
+      4.376729715936702,
+      3.0482663215122634
     ],
-    "doi": "10.1016/b978-1-4832-5676-4.50003-2"
+    "unbounded_indices": []
   },
   "DoubleScrollJerk": {
     "bifurcation_parameter": "a",
@@ -2528,6 +2525,11 @@
       -0.07538052777304395
     ],
     "maximum_lyapunov_estimated": 0.0564736751668512,
+    "mean": [
+      2.4064836562754484,
+      0.038751899572983944,
+      -0.005139419807412549
+    ],
     "multiscale_entropy": 0.796312585554829,
     "nonautonomous": true,
     "parameters": {
@@ -2537,18 +2539,13 @@
     },
     "period": 7.7351,
     "pesin_entropy": 0.05647367622168103,
-    "unbounded_indices": [
-      2
-    ],
-    "mean": [
-      2.4064836562754484,
-      0.038751899572983944,
-      -0.005139419807412549
-    ],
     "std": [
       4.819132587473826,
       2.6487996954826354,
       0.705389774926553
+    ],
+    "unbounded_indices": [
+      2
     ]
   },
   "ForcedBrusselator": {
@@ -3041,29 +3038,29 @@
     "bifurcation_parameter": "omega",
     "citation": "Kahraman, A., Singh, R. (1990). Non-linear dynamics of a spur gear pair. Journal of Sound and Vibration 142, 49-75.",
     "doi": "10.1016/0022-460X(90)90582-K",
-    "correlation_dimension": 2.3169687188956427,
+    "correlation_dimension": 2.3139693339172647,
     "description": "A spur gear pair with backlash under a mean load and a periodic transmission-error excitation. The dead-zone mesh stiffness produces gear rattle; displacement is normalized by half the backlash.",
     "dt": 0.002113857796035167,
     "embedding_dimension": 3,
     "hamiltonian": false,
     "initial_conditions": [
-      -0.7515938454199818,
-      0.04985775633710065,
-      105.69288980175834
+      1.0890497867148698,
+      -0.523170221820388,
+      0.49253755123667275
     ],
-    "kaplan_yorke_dimension": 2.5481720141757784,
+    "kaplan_yorke_dimension": 2.549410888757215,
     "lyapunov_spectrum_estimated": [
-      0.048837824048909136,
+      0.048772673377283804,
       0.0,
-      -0.08883782404838463
+      -0.08877267337676754
     ],
-    "maximum_lyapunov_estimated": 0.03736361339033144,
+    "maximum_lyapunov_estimated": 0.048772673377283804,
     "mean": [
-      0.46971631123818236,
-      0.00013132201918041465,
-      0.00021516373825189068
+      0.47312570667784715,
+      -0.0004237129479739787,
+      0.0008985860100913623
     ],
-    "multiscale_entropy": 0.743119241256898,
+    "multiscale_entropy": 0.7558713121546617,
     "nonautonomous": true,
     "parameters": {
       "fah": 0.2,
@@ -3072,11 +3069,11 @@
       "zeta": 0.02
     },
     "period": 10.569288980175834,
-    "pesin_entropy": 0.04883782404890915,
+    "pesin_entropy": 0.048772673377283804,
     "std": [
-      0.7877047316308645,
-      0.35908205660010606,
-      0.7070584482003011
+      0.7758491425624732,
+      0.3589947316315046,
+      0.7071522474132981
     ],
     "unbounded_indices": [
       2
@@ -3572,45 +3569,45 @@
     "bifurcation_parameter": null,
     "citation": "Henon, M.; Heiles, C. (1964). The applicability of the third integral of motion: Some numerical experiments. The Astronomical Journal. 69: 73.",
     "doi": "10.1086/109234",
-    "correlation_dimension": 1.483374075624846,
+    "correlation_dimension": 2.570413099073385,
     "description": "A star's motion around the galactic center.",
     "dt": 0.0012742123687280581,
     "embedding_dimension": 4,
-    "hamiltonian": false,
+    "hamiltonian": true,
     "initial_conditions": [
-      -0.29707259,
-      -0.0031367513,
-      0.42548865,
-      0.071905482
+      -0.06200988368482181,
+      0.7037449403707331,
+      0.18817207318427273,
+      0.1109521268249227
     ],
-    "kaplan_yorke_dimension": 6.81141589838772,
+    "kaplan_yorke_dimension": 3.9999999998135944,
     "lyapunov_spectrum_estimated": [
-      0.026747154244887203,
-      0.011500891097175434,
-      -1.4057113933414076e-05,
-      -0.011151041415888588
+      0.11496548205664095,
+      0.0009576428113447621,
+      -0.0008645600719007371,
+      -0.11505856481753256
     ],
-    "maximum_lyapunov_estimated": 0.03551120315239528,
-    "multiscale_entropy": 0.7137794258156454,
+    "maximum_lyapunov_estimated": 0.11496548205664095,
+    "mean": [
+      0.03131600879772823,
+      0.06210105986664009,
+      -2.6641559202914488e-05,
+      -0.0001645563333290692
+    ],
+    "multiscale_entropy": 0.7387259138211182,
     "nonautonomous": false,
     "parameters": {
       "lam": 1
     },
     "period": 6.37,
-    "pesin_entropy": 0.03870865064107525,
-    "unbounded_indices": [],
-    "mean": [
-      0.021134453814269295,
-      -0.008139471722852119,
-      0.0018721164240018537,
-      0.008191439391678042
-    ],
+    "pesin_entropy": 0.11592312486798571,
     "std": [
-      0.28258253755010515,
-      0.269796268157143,
-      0.2651210011476269,
-      0.2537525940706787
-    ]
+      0.2976295545475231,
+      0.3840621885845438,
+      0.23792609176573437,
+      0.29506052858960785
+    ],
+    "unbounded_indices": []
   },
   "HideSkeldonAcheson": {
     "bifurcation_parameter": null,
@@ -8093,40 +8090,40 @@
   "SprottA": {
     "bifurcation_parameter": null,
     "citation": "Sprott (1994). Some simple chaotic flows. Physical Review E (1994).",
-    "correlation_dimension": 1.9642234277909487,
+    "doi": "10.1103/physreve.50.r647",
+    "correlation_dimension": 2.0760971842692957,
     "description": "A member of the Sprott family of algebraically-simple chaotic sytems.",
     "dt": 0.001274781694385183,
     "embedding_dimension": 3,
     "hamiltonian": false,
     "initial_conditions": [
-      1.54131864,
-      1.43079727,
-      -1.52555412
+      0.32759269655832995,
+      -0.04735280307641654,
+      -2.305105620439343
     ],
-    "kaplan_yorke_dimension": 60.66528307527488,
+    "kaplan_yorke_dimension": 2.9868516689418865,
     "lyapunov_spectrum_estimated": [
-      0.029259920155059096,
-      0.004990159457687409,
-      -0.0015561317158397701
+      0.01740673777593928,
+      -0.00010364279592983939,
+      -0.017533632991229592
     ],
-    "maximum_lyapunov_estimated": 0.012993052652429771,
-    "multiscale_entropy": 0.5748267225365974,
+    "maximum_lyapunov_estimated": 0.01740673777593928,
+    "mean": [
+      0.1387273689870059,
+      -0.0002748668117003989,
+      -0.0018965175584316014
+    ],
+    "multiscale_entropy": 0.7070995990348017,
     "nonautonomous": false,
     "parameters": {},
     "period": 6.3728461538461545,
-    "pesin_entropy": 0.0343008088722448,
-    "unbounded_indices": [],
-    "mean": [
-      0.10958455653621559,
-      -0.01461254545055634,
-      -0.038929807638231395
-    ],
+    "pesin_entropy": 0.01740673777593928,
     "std": [
-      0.9660809113340121,
-      0.9783867779114269,
-      1.0525183096297686
+      1.1772449725653364,
+      0.9993770228946988,
+      1.563460361643184
     ],
-    "doi": "10.1103/physreve.50.r647"
+    "unbounded_indices": []
   },
   "SprottB": {
     "bifurcation_parameter": null,
@@ -8642,6 +8639,7 @@
   "SprottMore": {
     "bifurcation_parameter": null,
     "citation": "Sprott, J. C. (2020). Do We Need More Chaos Examples? Chaos Theory and Applications 2(2),1-3, 2020.",
+    "doi": "10.1016/j.chaos.2020.109990",
     "correlation_dimension": 2.234865750080784,
     "description": "A multifractal system with a nearly 3D attractor",
     "dt": 0.0013244125162412957,
@@ -8659,23 +8657,22 @@
       -0.24415047791726163
     ],
     "maximum_lyapunov_estimated": 0.22619747930697992,
-    "multiscale_entropy": 0.6370154977546665,
-    "nonautonomous": false,
-    "parameters": {},
-    "period": 6.62095890410959,
-    "pesin_entropy": 0.22619747930697992,
-    "unbounded_indices": [],
     "mean": [
       0.18618279281374,
       0.033623495900902176,
       0.011430289419301229
     ],
+    "multiscale_entropy": 0.6370154977546665,
+    "nonautonomous": false,
+    "parameters": {},
+    "period": 6.62095890410959,
+    "pesin_entropy": 0.22619747930697992,
     "std": [
       0.8367984765217839,
       0.7857150970903318,
       0.7928587514145102
     ],
-    "doi": "10.1016/j.chaos.2020.109990"
+    "unbounded_indices": []
   },
   "SprottN": {
     "bifurcation_parameter": null,
@@ -8956,24 +8953,30 @@
   "StickSlipOscillator": {
     "bifurcation_parameter": null,
     "citation": "Awrejcewicz, Jan, and M. M. Holicke (1999). Int J of Bifurcation and Chaos.",
-    "correlation_dimension": 1.7159805502964127,
+    "doi": "10.1142/s0218127499000341",
+    "correlation_dimension": 2.39072073919963,
     "description": "A weakly forced (quasiautonomous) oscillator with dynamics similar to stick-slip friction. The parameter gamma controls the transition to chaos.",
     "dt": 0.00032263377229540424,
     "embedding_dimension": 3,
     "hamiltonian": false,
     "initial_conditions": [
-      0.85539847,
-      -0.39125834,
-      0
+      0.4218377199816031,
+      1.3906057320124048,
+      2.525937416872445
     ],
-    "kaplan_yorke_dimension": 5.682155291949877,
+    "kaplan_yorke_dimension": 2.8726430757649095,
     "lyapunov_spectrum_estimated": [
-      0.07073329226101453,
-      3.356854711815694e-05,
-      -0.02131392884593247
+      0.26184096005044155,
+      0.0,
+      -0.30005504807441075
     ],
-    "maximum_lyapunov_estimated": 0.06406131604734494,
-    "multiscale_entropy": 0.9213029740441252,
+    "maximum_lyapunov_estimated": 0.26184096005044155,
+    "mean": [
+      -0.027050210177204995,
+      0.000631673893367351,
+      -0.00012651410151190065
+    ],
+    "multiscale_entropy": 1.2653352100944155,
     "nonautonomous": true,
     "parameters": {
       "a": 1,
@@ -8981,27 +8984,22 @@
       "b": 1,
       "beta": 0.3,
       "eps": 0.05,
-      "gamma": 1.0,
+      "gamma": 16.0,
+      "smoothing": 0.001,
       "t0": 0.3,
       "vs": 0.4,
       "w": 2
     },
     "period": 1.6129,
-    "pesin_entropy": 0.07108101456222432,
+    "pesin_entropy": 0.26184096005044155,
+    "std": [
+      0.9509815675917156,
+      0.8090039879475064,
+      0.7076079167340682
+    ],
     "unbounded_indices": [
       2
-    ],
-    "mean": [
-      0.9019798104651885,
-      -0.009004741904304343,
-      0.024235173290158653
-    ],
-    "std": [
-      0.22639947454578727,
-      0.28878705443534525,
-      0.712061059809113
-    ],
-    "doi": "10.1142/s0218127499000341"
+    ]
   },
   "StokesDrop": {
     "bifurcation_parameter": "wmag",
